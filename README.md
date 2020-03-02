@@ -4,10 +4,11 @@ A tiny [curl](https://curl.haxx.se/) wrapper via idiomatic Clojure, inspired by 
 
 ## Status
 
-This library may end up in [babashka](https://github.com/borkdude/babashka/). It
-can be used as a library, but because we're just getting started and still
-figuring out an API, it may be better to just copy the code to your
-scripts. Your tweaks are welcome as contributions.
+This library may end up in
+[babashka](https://github.com/borkdude/babashka/). We're just getting started
+and still figuring out an API so breaking changes are likely to
+happen. Therefore it may be better to just copy the code to your scripts right
+now. Your tweaks are welcome as contributions.
 
 ## Usage
 
