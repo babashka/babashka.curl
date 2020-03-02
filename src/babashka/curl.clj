@@ -57,8 +57,15 @@
                    ["--data-raw" data-raw])
         url (:url opts)
         in-file (:in-file opts)
-        in-file (when in-file ["-d" (str "@" (.getCanonicalPath ^java.io.File in-file))])]
-    (conj (reduce into ["curl" "--silent" "--show-error"] [method headers data-raw in-file (:raw-args opts)])
+        in-file (when in-file ["-d" (str "@" (.getCanonicalPath ^java.io.File in-file))])
+        basic-auth (:basic-auth opts)
+        basic-auth (if (sequential? basic-auth)
+                     (str/join ":" basic-auth)
+                     basic-auth)
+        basic-auth (when basic-auth
+                     ["--user" basic-auth])]
+    (conj (reduce into ["curl" "--silent" "--show-error"]
+                  [method headers data-raw in-file basic-auth (:raw-args opts)])
           url)))
 
 (defn request [opts]
