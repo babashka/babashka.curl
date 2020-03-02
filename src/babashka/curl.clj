@@ -42,8 +42,19 @@
     ;; the time, so maybe the first should be supported via an option?
     out))
 
+(defn file? [f]
+  (let [f (io/file f)]
+    (and (.exists f)
+         (.isFile f))))
+
 (defn curl-args [opts]
-  (let [method (some-> (:method opts) name str/upper-case)
+  (let [body (:body opts)
+        opts (if body
+               (cond-> opts
+                 (string? body) (assoc :data-raw body)
+                 (file? body) (assoc :in-file body))
+               opts)
+        method (some-> (:method opts) name str/upper-case)
         method (when method ["-X" method])
         headers (:headers opts)
         headers (loop [headers* (transient [])
@@ -88,22 +99,11 @@
    (let [opts (assoc opts :url url)]
      (request opts))))
 
-(defn file? [f]
-  (let [f (io/file f)]
-    (and (.exists f)
-         (.isFile f))))
-
 (defn post
   ([url] (post url nil))
   ([url opts]
    (let [opts (assoc opts :url url
-                     :method :post)
-         body (:body opts)
-         opts (if body
-                (cond-> opts
-                    (string? body) (assoc :data-raw body)
-                    (file? body) (assoc :in-file body))
-                opts)]
+                     :method :post)]
      (request opts))))
 
 (defn put

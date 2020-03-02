@@ -32,6 +32,12 @@
                     {:form-params {"name" "michiel"}})
          "michiel"))))
 
+(deftest patch-test
+  (is (str/includes?
+       (curl/patch "https://postman-echo.com/patch"
+                   {:body "hello"})
+       "hello")))
+
 (deftest basic-auth-test
   (is (re-find #"authenticated.*true"
        (curl/get "https://postman-echo.com/basic-auth" {:basic-auth ["postman" "password"]}))))
