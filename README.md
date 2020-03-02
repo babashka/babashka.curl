@@ -60,8 +60,7 @@ Passing raw arguments to `curl` can be done with `:raw-args`:
 ``` clojure
 (require '[clojure.string :as str])
 (def resp (curl/get "https://www.clojure.org" {:raw-args ["-D" "-"]}))
-(-> (str/split resp #"\n") first)
-;;=> "HTTP/1.1 200 OK\r"
+(-> (str/split resp #"\n") first) ;;=> "HTTP/1.1 200 OK\r"
 ```
 
 ## Test
