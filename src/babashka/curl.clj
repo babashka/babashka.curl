@@ -54,8 +54,10 @@
                  (string? body) (assoc :data-raw body)
                  (file? body) (assoc :in-file body))
                opts)
-        method (some-> (:method opts) name str/upper-case)
-        method (when method ["-X" method])
+        method (when-let [method (:method opts)]
+                 (case method
+                   :head ["--head"]
+                   ["-X" (-> method name str/upper-case)]))
         headers (:headers opts)
         headers (loop [headers* (transient [])
                        kvs (seq headers)]
@@ -92,6 +94,13 @@
     (when (:debug? opts)
       (println (str/join " " (map pr-str (cons "curl" args)))))
     (exec-curl args opts)))
+
+(defn head
+  ([url] (head url nil))
+  ([url opts]
+   (let [opts (assoc opts :url url
+                     :method :head)]
+     (request opts))))
 
 (defn get
   ([url] (get url nil))

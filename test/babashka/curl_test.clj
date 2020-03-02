@@ -14,6 +14,10 @@
              (json/parse-string true)
              :code))))
 
+(deftest head-test
+  (is (str/includes? (curl/head "https://postman-echo.com/head")
+                     "200 OK")))
+
 (deftest post-test
   (is (subs (curl/post "https://postman-echo.com/post")
             0 10))
