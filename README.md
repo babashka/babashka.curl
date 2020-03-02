@@ -35,7 +35,7 @@ Basic auth:
 Posting form params:
 
 ``` clojure
-(curl/post "https://postman-echo.com/post" {:form-params {"name" "michiel"}})
+(curl/post "https://postman-echo.com/post" {:form-params {"name" "Michiel"}})
 ```
 
 Posting a file as a POST body:
