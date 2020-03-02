@@ -47,6 +47,12 @@
     (and (.exists f)
          (.isFile f))))
 
+(defn accept-header [opts]
+  (when-let [accept (:accept opts)]
+    ["-H" (str "Accept: " (case accept
+                            :json "application/json"
+                            accept))]))
+
 (defn curl-args [opts]
   (let [body (:body opts)
         opts (if body
@@ -65,6 +71,7 @@
                     (let [[k v] (first kvs)]
                       (recur (reduce conj! headers* ["-H" (str k ": " v)]) (next kvs)))
                     (persistent! headers*)))
+        accept-header (accept-header opts)
         form-params (:form-params opts)
         form-params (loop [headers* (transient [])
                            kvs (seq form-params)]
@@ -85,7 +92,7 @@
         basic-auth (when basic-auth
                      ["--user" basic-auth])]
     (conj (reduce into ["curl" "--silent" "--show-error"]
-                  [method headers data-raw in-file basic-auth
+                  [method headers accept-header data-raw in-file basic-auth
                    form-params (:raw-args opts)])
           url)))
 

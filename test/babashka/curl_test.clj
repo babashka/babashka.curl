@@ -53,6 +53,13 @@
                    :raw-args ["-D" "-"]})
        "200 OK")))
 
+(deftest accept-header-test
+  (is (= 200
+         (-> (curl/get "https://httpstat.us/200"
+                       {:accept :json})
+             (json/parse-string true)
+             :code))))
+
 
 ;; untested, but works:
 ;; $ export BABASHKA_CLASSPATH=src
