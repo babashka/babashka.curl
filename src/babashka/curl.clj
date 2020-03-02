@@ -14,11 +14,12 @@
   `:throw?`: Unless `false`, exits script when the shell-command has a
   non-zero exit code, unless `throw?` is set to false."
   ([args] (shell-command args nil))
-  ([args {:keys [:in :throw?]
+  ([args {:keys [:throw?]
           :or {throw? true}}]
    (let [pb (let [pb (ProcessBuilder. ^java.util.List args)]
-              (if in (.redirectInput pb in)
-                  (.redirectInput pb ProcessBuilder$Redirect/INHERIT)))
+              (doto pb
+                (.redirectInput ProcessBuilder$Redirect/INHERIT)
+                (.redirectError ProcessBuilder$Redirect/INHERIT)))
          proc (.start pb)
          string-out
          (let [sw (java.io.StringWriter.)]
@@ -57,7 +58,7 @@
         url (:url opts)
         in-file (:in-file opts)
         in-file (when in-file ["-d" (str "@" (.getCanonicalPath ^java.io.File in-file))])]
-    (conj (reduce into ["curl"] [method headers data-raw in-file (:raw-args opts)])
+    (conj (reduce into ["curl" "--silent" "--show-error"] [method headers data-raw in-file (:raw-args opts)])
           url)))
 
 (defn request [opts]
