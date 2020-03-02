@@ -2,7 +2,10 @@
 
 A tiny [curl](https://curl.haxx.se/) wrapper via idiomatic Clojure, inspired by [clj-http](https://github.com/dakrone/clj-http#philosophy), [Ring](https://github.com/ring-clojure/ring) and friends.
 
-This library may end up in [babashka](https://github.com/borkdude/babashka/) but for now it can be used as a library.
+This library may end up in [babashka](https://github.com/borkdude/babashka/). It
+can be used as a library, but because we're just getting started, it may be
+better to just copy the code to your scripts. If you need changes to the code,
+you're welcome to contribute them back into this library.
 
 ## Status
 
