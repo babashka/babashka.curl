@@ -1,6 +1,6 @@
 (ns babashka.curl-test
   (:require [babashka.curl :as curl]
-            [clojure.test :refer [deftest is testing]]
+            [clojure.test :refer [deftest is]]
             [cheshire.core :as json]
             [clojure.string :as str]))
 
@@ -14,6 +14,8 @@
              :code))))
 
 (deftest post-test
+  (is (subs (curl/post "https://postman-echo.com/post")
+            0 10))
   (is (str/includes?
        (curl/post "https://postman-echo.com/post"
                   {:body "From Clojure"})

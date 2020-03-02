@@ -42,7 +42,7 @@
      (request opts))))
 
 (defn post
-  ([url] (get url nil))
+  ([url] (post url nil))
   ([url opts]
    (let [body (:body opts)
          opts (cond-> (assoc opts :url url
@@ -51,7 +51,7 @@
      (request opts))))
 
 (defn put
-  ([url] (get url nil))
+  ([url] (put url nil))
   ([url opts]
    (let [opts (assoc opts :url url
                      :method :put)]
