@@ -4,7 +4,7 @@
             [clojure.string :as str]))
 
 (defn exec-curl [args]
-  ;; (prn args)
+  #_(prn args)
   (let [res (apply sh "curl" args)
         exit (:exit res)
         out (:out res)]
@@ -17,9 +17,12 @@
   (let [method (some-> (:method opts) name str/upper-case)
         method (when method ["-X" method])
         headers (:headers opts)
-        headers (into [] cat headers)
-        headers (not-empty (str/join ": " headers))
-        headers (when headers ["-H" headers])
+        headers (loop [headers* (transient [])
+                       kvs (seq headers)]
+                  (if kvs
+                    (let [[k v] (first kvs)]
+                      (recur (reduce conj! headers* ["-H" (str k ": " v)]) (next kvs)))
+                    (persistent! headers*)))
         url (:url opts)]
     (conj (reduce into [] [method headers])
           url)))
