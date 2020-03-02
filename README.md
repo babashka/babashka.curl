@@ -26,6 +26,24 @@ now. Your tweaks are welcome as contributions.
 (json/parse-string resp) ;;=> {"args" {}, "data" "", ...}
 ```
 
+Basic auth:
+
+``` clojure
+(curl/get "https://postman-echo.com/basic-auth" {:basic-auth ["postman" "password"]})
+```
+
+Posting form params:
+
+``` clojure
+(curl/post "https://postman-echo.com/post" {:form-params {"name" "michiel"}})
+```
+
+Posting a file as a POST body:
+
+``` clojure
+(curl/post "https://postman-echo.com/post" {:body (io/file "README.md")})
+```
+
 Passing raw arguments to `curl` can be done with `:raw-args`:
 
 ``` clojure

@@ -34,8 +34,7 @@
 
 (deftest basic-auth-test
   (is (re-find #"authenticated.*true"
-       (curl/get "https://postman-echo.com/basic-auth"
-                 {:basic-auth ["postman" "password"]}))))
+       (curl/get "https://postman-echo.com/basic-auth" {:basic-auth ["postman" "password"]}))))
 
 (deftest raw-args-test
   (is (str/includes?
