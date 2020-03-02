@@ -16,9 +16,7 @@
   ([args] (shell-command args nil))
   ([args {:keys [:in :throw?]
           :or {throw? true}}]
-   (let [args (cond-> (mapv str args)
-                in (conj "-d" "@-"))
-         pb (let [pb (ProcessBuilder. ^java.util.List args)]
+   (let [pb (let [pb (ProcessBuilder. ^java.util.List args)]
               (if in (.redirectInput pb in)
                   (.redirectInput pb ProcessBuilder$Redirect/INHERIT)))
          proc (.start pb)
@@ -56,8 +54,10 @@
         data-raw (:data-raw opts)
         data-raw (when data-raw
                    ["--data-raw" data-raw])
-        url (:url opts)]
-    (conj (reduce into ["curl"] [method headers data-raw (:raw-args opts)])
+        url (:url opts)
+        in (:in opts)
+        in (when in ["-d" "@-"])]
+    (conj (reduce into ["curl"] [method headers data-raw in (:raw-args opts)])
           url)))
 
 (defn request [opts]
