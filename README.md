@@ -6,7 +6,7 @@ This library may end up in [babashka](https://github.com/borkdude/babashka/) but
 
 ## Status
 
-Work in progress, early days, far from finished. Contributions welcome.
+Work in progress, early days, far from finished. Breaking changes will happen. Contributions welcome.
 
 ## Usage
 
