@@ -52,6 +52,13 @@
                     (let [[k v] (first kvs)]
                       (recur (reduce conj! headers* ["-H" (str k ": " v)]) (next kvs)))
                     (persistent! headers*)))
+        form-params (:form-params opts)
+        form-params (loop [headers* (transient [])
+                           kvs (seq form-params)]
+                      (if kvs
+                        (let [[k v] (first kvs)]
+                          (recur (reduce conj! headers* ["-F" (str k "=" v)]) (next kvs)))
+                        (persistent! headers*)))
         data-raw (:data-raw opts)
         data-raw (when data-raw
                    ["--data-raw" data-raw])
@@ -65,7 +72,8 @@
         basic-auth (when basic-auth
                      ["--user" basic-auth])]
     (conj (reduce into ["curl" "--silent" "--show-error"]
-                  [method headers data-raw in-file basic-auth (:raw-args opts)])
+                  [method headers data-raw in-file basic-auth
+                   form-params (:raw-args opts)])
           url)))
 
 (defn request [opts]
