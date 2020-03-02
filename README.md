@@ -14,22 +14,33 @@ now. Your tweaks are welcome as contributions.
 
 ``` clojure
 (require '[babashka.curl])
+```
 
+Simple `GET` request:
+
+``` clojure
 (curl/get "https://httpstat.us/200")
 ;;=> "200 OK"
+```
 
+Passing headers:
+
+``` clojure
 (require '[cheshire.core :as json])
 (def resp (curl/get "https://httpstat.us/200" {:headers {"Accept" "application/json"}}))
 (json/parse-string resp) ;;=> {"code" 200, "description" "OK"}
+```
 
+A `POST` request with a `:body`:
+```
 (def resp (curl/post "https://postman-echo.com/post" {:body "From Clojure"}))
 (json/parse-string resp) ;;=> {"args" {}, "data" "", ...}
 ```
 
-Basic auth:
+Posting a file as a `POST` body:
 
 ``` clojure
-(curl/get "https://postman-echo.com/basic-auth" {:basic-auth ["postman" "password"]})
+(curl/post "https://postman-echo.com/post" {:body (io/file "README.md")})
 ```
 
 Posting form params:
@@ -38,10 +49,10 @@ Posting form params:
 (curl/post "https://postman-echo.com/post" {:form-params {"name" "Michiel"}})
 ```
 
-Posting a file as a POST body:
+Basic auth:
 
 ``` clojure
-(curl/post "https://postman-echo.com/post" {:body (io/file "README.md")})
+(curl/get "https://postman-echo.com/basic-auth" {:basic-auth ["postman" "password"]})
 ```
 
 Passing raw arguments to `curl` can be done with `:raw-args`:
