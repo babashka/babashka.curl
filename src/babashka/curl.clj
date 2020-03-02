@@ -4,7 +4,7 @@
             [clojure.string :as str]))
 
 (defn exec-curl [args]
-  #_(prn args)
+  ;; (prn args)
   (let [res (apply sh "curl" args)
         exit (:exit res)
         out (:out res)]
@@ -23,12 +23,35 @@
                     (let [[k v] (first kvs)]
                       (recur (reduce conj! headers* ["-H" (str k ": " v)]) (next kvs)))
                     (persistent! headers*)))
+        data-raw (:data-raw opts)
+        data-raw (when data-raw
+                   ["--data-raw" data-raw])
         url (:url opts)]
-    (conj (reduce into [] [method headers])
+    (conj (reduce into [] [method headers data-raw])
           url)))
+
+(defn request [opts]
+  (-> (curl-args opts)
+      (exec-curl)))
 
 (defn get
   ([url] (get url nil))
   ([url opts]
-   (-> (curl-args (assoc opts :url url))
-       (exec-curl))))
+   (let [opts (assoc opts :url url)]
+     (request opts))))
+
+(defn post
+  ([url] (get url nil))
+  ([url opts]
+   (let [body (:body opts)
+         opts (cond-> (assoc opts :url url
+                             :method :post)
+                body (assoc :data-raw body))]
+     (request opts))))
+
+(defn put
+  ([url] (get url nil))
+  ([url opts]
+   (let [opts (assoc opts :url url
+                     :method :put)]
+     (request opts))))

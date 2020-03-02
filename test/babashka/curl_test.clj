@@ -12,3 +12,9 @@
                        {:headers {"Accept" "application/json"}})
              (json/parse-string true)
              :code))))
+
+(deftest post-test
+  (is (str/includes?
+       (curl/post "https://postman-echo.com/post"
+                  {:body "From Clojure"})
+       "From Clojure")))
