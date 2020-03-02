@@ -4,7 +4,6 @@
             [clojure.string :as str]))
 
 (defn exec-curl [args]
-  ;; (prn args)
   (let [res (apply sh "curl" args)
         exit (:exit res)
         out (:out res)]
@@ -27,12 +26,14 @@
         data-raw (when data-raw
                    ["--data-raw" data-raw])
         url (:url opts)]
-    (conj (reduce into [] [method headers data-raw])
+    (conj (reduce into [] [method headers data-raw (:raw-args opts)])
           url)))
 
 (defn request [opts]
-  (-> (curl-args opts)
-      (exec-curl)))
+  (let [args (curl-args opts)]
+    (when (:debug? opts)
+      (println (str/join " " (map pr-str (cons "curl" args)))))
+    (exec-curl args)))
 
 (defn get
   ([url] (get url nil))

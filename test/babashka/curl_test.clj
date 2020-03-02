@@ -18,3 +18,10 @@
        (curl/post "https://postman-echo.com/post"
                   {:body "From Clojure"})
        "From Clojure")))
+
+(deftest args-test
+  (is (str/includes?
+       (curl/post "https://postman-echo.com/post"
+                  {:body "From Clojure"
+                   :raw-args ["-D" "-"]})
+       "200 OK")))

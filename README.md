@@ -20,6 +20,15 @@ Work in progress, early days, far from finished. Breaking changes will happen. C
 ;;=> "{\"code\": 200, \"description\": \"OK\"}"
 ```
 
+Passing raw arguments to `curl` can be done with `:raw-args`:
+
+``` clojure
+(curl/post "https://postman-echo.com/post"
+                  {:body "From Clojure"
+                   :raw-args ["-D" "-"]})
+;;=> "HTTP/1.1 200 OK\r\nContent-Type: application/json; ..."
+```
+
 ## Test
 
 ``` clojure
