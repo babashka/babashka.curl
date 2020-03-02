@@ -73,12 +73,19 @@
                     (persistent! headers*)))
         accept-header (accept-header opts)
         form-params (:form-params opts)
-        form-params (loop [headers* (transient [])
+        form-params (loop [params* (transient [])
                            kvs (seq form-params)]
                       (if kvs
                         (let [[k v] (first kvs)]
-                          (recur (reduce conj! headers* ["-F" (str k "=" v)]) (next kvs)))
-                        (persistent! headers*)))
+                          (recur (reduce conj! params* ["-F" (str k "=" v)]) (next kvs)))
+                        (persistent! params*)))
+        query-params (when-let [qp (:query-params opts)]
+                       (loop [params* (transient [])
+                              kvs (seq qp)]
+                         (if kvs
+                           (let [[k v] (first kvs)]
+                             (recur (conj! params* (str k "=" v)) (next kvs)))
+                           (str/join "&" (persistent! params*)))))
         data-raw (:data-raw opts)
         data-raw (when data-raw
                    ["--data-raw" data-raw])
@@ -94,7 +101,8 @@
     (conj (reduce into ["curl" "--silent" "--show-error"]
                   [method headers accept-header data-raw in-file basic-auth
                    form-params (:raw-args opts)])
-          url)))
+          (str url (when query-params
+                     (str "?" query-params))))))
 
 (defn request [opts]
   (let [args (curl-args opts)]

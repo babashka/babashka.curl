@@ -12,7 +12,12 @@
          (-> (curl/get "https://httpstat.us/200"
                        {:headers {"Accept" "application/json"}})
              (json/parse-string true)
-             :code))))
+             :code)))
+  (testing "query params"
+    (is (= {:foo1 "bar1", :foo2 "bar2"}
+           (-> (curl/get "https://postman-echo.com/get" {:query-params {"foo1" "bar1" "foo2" "bar2"}})
+               (json/parse-string true)
+               :args)))))
 
 (deftest head-test
   (is (str/includes? (curl/head "https://postman-echo.com/head")
