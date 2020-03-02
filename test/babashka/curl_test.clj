@@ -2,7 +2,8 @@
   (:require [babashka.curl :as curl]
             [clojure.test :refer [deftest is]]
             [cheshire.core :as json]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.java.io :as io]))
 
 (deftest get-test
   (is (str/includes? (curl/get "https://httpstat.us/200")
@@ -27,3 +28,9 @@
                   {:body "From Clojure"
                    :raw-args ["-D" "-"]})
        "200 OK")))
+
+(deftest in-test
+  (is (str/includes?
+       (curl/post "https://postman-echo.com/post"
+                  {:in (io/file "README.md")})
+       "babashka.curl")))

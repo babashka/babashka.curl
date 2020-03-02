@@ -1,10 +1,41 @@
 (ns babashka.curl
   (:refer-clojure :exclude [get])
-  (:require [clojure.java.shell :refer [sh]]
-            [clojure.string :as str]))
+  (:require #_[clojure.java.shell :refer [sh]]
+            [clojure.string :as str]
+            [clojure.java.io :as io])
+  (:import [java.lang ProcessBuilder$Redirect]))
 
-(defn exec-curl [args]
-  (let [res (apply sh "curl" args)
+(defn- shell-command
+  "Executes shell command.
+  Accepts the following options:
+  `:input`: instead of reading from stdin, read from this string.
+  `:to-string?`: instead of writing to stdoud, write to a string and
+  return it.
+  `:throw?`: Unless `false`, exits script when the shell-command has a
+  non-zero exit code, unless `throw?` is set to false."
+  ([args] (shell-command args nil))
+  ([args {:keys [:in :throw?]
+          :or {throw? true}}]
+   (let [args (cond-> (mapv str args)
+                in (conj "-d" "@-"))
+         pb (let [pb (ProcessBuilder. ^java.util.List args)]
+              (if in (.redirectInput pb in)
+                  (.redirectInput pb ProcessBuilder$Redirect/INHERIT)))
+         proc (.start pb)
+         string-out
+         (let [sw (java.io.StringWriter.)]
+           (with-open [w (io/reader (.getInputStream proc))]
+             (io/copy w sw))
+           (str sw))
+         exit-code (.waitFor proc)]
+     (when (and throw? (not (zero? exit-code)))
+       (throw (ex-info "Got non-zero exit code" {:status exit-code})))
+     {:out string-out
+      :exit exit-code
+      :err ""})))
+
+(defn exec-curl [args opts]
+  (let [res (shell-command args opts)
         exit (:exit res)
         out (:out res)]
     ;; TODO: handle non-zero exit with exception?  TODO: should we return a map
@@ -26,14 +57,14 @@
         data-raw (when data-raw
                    ["--data-raw" data-raw])
         url (:url opts)]
-    (conj (reduce into [] [method headers data-raw (:raw-args opts)])
+    (conj (reduce into ["curl"] [method headers data-raw (:raw-args opts)])
           url)))
 
 (defn request [opts]
   (let [args (curl-args opts)]
     (when (:debug? opts)
       (println (str/join " " (map pr-str (cons "curl" args)))))
-    (exec-curl args)))
+    (exec-curl args opts)))
 
 (defn get
   ([url] (get url nil))
