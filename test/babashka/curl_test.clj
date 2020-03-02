@@ -32,5 +32,10 @@
 (deftest in-test
   (is (str/includes?
        (curl/post "https://postman-echo.com/post"
-                  {:in (io/file "README.md")})
+                  {:body (io/file "README.md")})
        "babashka.curl")))
+
+;; untested, but works:
+;; $ export BABASHKA_CLASSPATH=src
+;; $ cat README.md | bb "(require '[babashka.curl :as curl]) (curl/post \"https://postman-echo.com/post\" {:raw-args [\"-d\" \"@-\"]})"
+;; "{\"args\":{},\"data\":\"\",\"files\":{},\"form\":{\"# babashka.curlA tiny [curl](https://curl.haxx.se/) wrapper via idiomatic Clojure,

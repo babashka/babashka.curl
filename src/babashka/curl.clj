@@ -55,9 +55,9 @@
         data-raw (when data-raw
                    ["--data-raw" data-raw])
         url (:url opts)
-        in (:in opts)
-        in (when in ["-d" "@-"])]
-    (conj (reduce into ["curl"] [method headers data-raw in (:raw-args opts)])
+        in-file (:in-file opts)
+        in-file (when in-file ["-d" (str "@" (.getCanonicalPath ^java.io.File in-file))])]
+    (conj (reduce into ["curl"] [method headers data-raw in-file (:raw-args opts)])
           url)))
 
 (defn request [opts]
@@ -72,13 +72,22 @@
    (let [opts (assoc opts :url url)]
      (request opts))))
 
+(defn file? [f]
+  (let [f (io/file f)]
+    (and (.exists f)
+         (.isFile f))))
+
 (defn post
   ([url] (post url nil))
   ([url opts]
-   (let [body (:body opts)
-         opts (cond-> (assoc opts :url url
-                             :method :post)
-                body (assoc :data-raw body))]
+   (let [opts (assoc opts :url url
+                     :method :post)
+         body (:body opts)
+         opts (if body
+                (cond-> opts
+                    (string? body) (assoc :data-raw body)
+                    (file? body) (assoc :in-file body))
+                opts)]
      (request opts))))
 
 (defn put
