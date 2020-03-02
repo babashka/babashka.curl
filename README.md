@@ -19,17 +19,22 @@ Work in progress, early days, far from finished. Breaking changes will happen. C
 (curl/get "https://httpstat.us/200")
 ;;=> "200 OK"
 
-(curl/get "https://httpstat.us/200" {:headers {"Accept" "application/json"}})
-;;=> "{\"code\": 200, \"description\": \"OK\"}"
+(require '[cheshire.core :as json])
+(def resp (curl/get "https://httpstat.us/200" {:headers {"Accept" "application/json"}}))
+(json/parse-string resp) ;;=> {"code" 200, "description" "OK"}
+
+(def resp (curl/post "https://postman-echo.com/post" {:body "From Clojure"}))
+(json/parse-string resp) ;;=> {"args" {}, "data" "", ...}
 ```
 
 Passing raw arguments to `curl` can be done with `:raw-args`:
 
 ``` clojure
-(curl/post "https://postman-echo.com/post"
-                  {:body "From Clojure"
-                   :raw-args ["-D" "-"]})
-;;=> "HTTP/1.1 200 OK\r\nContent-Type: application/json; ..."
+(require '[clojure.string :as str])
+(def resp (curl/post "https://postman-echo.com/post"
+                     {:body "From Clojure"
+                      :raw-args ["-D" "-"]}))
+(-> (str/split resp #"\n") first) ;;=> "HTTP/1.1 200 OK\r"
 ```
 
 ## Test
