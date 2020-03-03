@@ -77,9 +77,9 @@ Passing raw arguments to `curl` can be done with `:raw-args`:
 Talking to a UNIX socket:
 
 ``` clojure
-(-> (curl/get  "http://localhost/images/json"
-               {:raw-args ["--unix-socket"
-                           "/var/run/docker.sock"]})
+(-> (curl/get "http://localhost/images/json"
+              {:raw-args ["--unix-socket"
+                          "/var/run/docker.sock"]})
     (json/parse-string true)
     first
     :RepoTags)
