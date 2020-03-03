@@ -32,7 +32,8 @@ Passing headers:
 ```
 
 A `POST` request with a `:body`:
-```
+
+``` clojure
 (def resp (curl/post "https://postman-echo.com/post" {:body "From Clojure"}))
 (json/parse-string resp) ;;=> {"args" {}, "data" "", ...}
 ```
