@@ -109,10 +109,9 @@
     (conj (reduce into ["curl" "--silent" "--show-error"]
                   [method headers accept-header data-raw in-file basic-auth
                    form-params (:raw-args opts)])
-          (format "%s"
-                  (str url
-                       (when query-params
-                         (str "?" query-params)))))))
+          (str url
+               (when query-params
+                 (str "?" query-params))))))
 
 ;;;; End utils
 
