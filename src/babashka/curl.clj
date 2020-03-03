@@ -3,7 +3,10 @@
   (:require #_[clojure.java.shell :refer [sh]]
             [clojure.string :as str]
             [clojure.java.io :as io])
-  (:import [java.lang ProcessBuilder$Redirect]))
+  (:import [java.lang ProcessBuilder$Redirect]
+           [java.net URLEncoder]))
+
+;;;; Utils
 
 (defn- shell-command
   "Executes shell command.
@@ -33,7 +36,7 @@
       :exit exit-code
       :err ""})))
 
-(defn exec-curl [args opts]
+(defn- exec-curl [args opts]
   (let [res (shell-command args opts)
         exit (:exit res)
         out (:out res)]
@@ -42,18 +45,23 @@
     ;; the time, so maybe the first should be supported via an option?
     out))
 
-(defn file? [f]
+(defn- file? [f]
   (let [f (io/file f)]
     (and (.exists f)
          (.isFile f))))
 
-(defn accept-header [opts]
+(defn- accept-header [opts]
   (when-let [accept (:accept opts)]
     ["-H" (str "Accept: " (case accept
                             :json "application/json"
                             accept))]))
 
-(defn curl-args [opts]
+(defn- url-encode
+  "Returns an UTF-8 URL encoded version of the given string."
+  [^String unencoded]
+  (URLEncoder/encode unencoded "UTF-8"))
+
+(defn curl-command [opts]
   (let [body (:body opts)
         opts (if body
                (cond-> opts
@@ -84,7 +92,7 @@
                               kvs (seq qp)]
                          (if kvs
                            (let [[k v] (first kvs)]
-                             (recur (conj! params* (str k "=" v)) (next kvs)))
+                             (recur (conj! params* (str (url-encode k) "=" (url-encode v))) (next kvs)))
                            (str/join "&" (persistent! params*)))))
         data-raw (:data-raw opts)
         data-raw (when data-raw
@@ -101,13 +109,17 @@
     (conj (reduce into ["curl" "--silent" "--show-error"]
                   [method headers accept-header data-raw in-file basic-auth
                    form-params (:raw-args opts)])
-          (str url (when query-params
-                     (str "?" query-params))))))
+          (format "%s"
+                  (str url
+                       (when query-params
+                         (str "?" query-params)))))))
+
+;;;; End utils
 
 (defn request [opts]
-  (let [args (curl-args opts)]
+  (let [args (curl-command opts)]
     (when (:debug? opts)
-      (println (str/join " " (map pr-str (cons "curl" args)))))
+      (println (str/join " " (map pr-str args))))
     (exec-curl args opts)))
 
 (defn head

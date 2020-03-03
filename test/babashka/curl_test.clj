@@ -65,6 +65,11 @@
              (json/parse-string true)
              :code))))
 
+(deftest url-encode-query-params-test
+  (is (= {"my query param?" "hello there"}
+         (-> (curl/get "https://postman-echo.com/get" {:query-params {"my query param?" "hello there"}})
+             (json/parse-string)
+             (get "args")))))
 
 ;; untested, but works:
 ;; $ export BABASHKA_CLASSPATH=src
