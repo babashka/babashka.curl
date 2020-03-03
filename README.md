@@ -31,6 +31,16 @@ Passing headers:
 (json/parse-string resp) ;;=> {"code" 200, "description" "OK"}
 ```
 
+Query parameters:
+
+``` clojure
+(->
+  (curl/get "https://postman-echo.com/get" {:query-params {"q" "clojure"}})
+  (json/parse-string true)
+  :args)
+;;=> {:q "clojure"}
+```
+
 A `POST` request with a `:body`:
 
 ``` clojure
