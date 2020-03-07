@@ -71,6 +71,16 @@
              (json/parse-string)
              (get "args")))))
 
+(deftest low-level-url-test
+  (let [response (-> (curl/request {:url {:scheme "https"
+                                          :host   "httpbin.org"
+                                          :port   443
+                                          :path   "/get"
+                                          :query  "q=test"}})
+                     (json/parse-string true))]
+    (is (= {:q "test"} (:args response)))
+    (is (= "httpbin.org" (get-in response [:headers :Host])))))
+
 ;; untested, but works:
 ;; $ export BABASHKA_CLASSPATH=src
 ;; $ cat README.md | bb "(require '[babashka.curl :as curl]) (curl/post \"https://postman-echo.com/post\" {:raw-args [\"-d\" \"@-\"]})"
