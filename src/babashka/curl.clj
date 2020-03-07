@@ -7,6 +7,8 @@
            [java.net URLEncoder]
            [java.net URI]))
 
+(set! *warn-on-reflection* true)
+
 ;;;; Utils
 
 (defn- shell-command
