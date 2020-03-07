@@ -4,7 +4,7 @@ A tiny [curl](https://curl.haxx.se/) wrapper via idiomatic Clojure, inspired by 
 
 ## Status
 
-This library will is part of [babashka](https://github.com/borkdude/babashka/)
+This library is part of [babashka](https://github.com/borkdude/babashka/)
 but can also be used with JVM Clojure. Check `CHANGES.md` before
 upgrading as the API may still undergo some changes. Contributions welcome.
 
