@@ -11,7 +11,7 @@ upgrading as the API may still undergo some changes. Contributions welcome.
 ## Usage
 
 ``` clojure
-(require '[babashka.curl])
+(require '[babashka.curl :as curl])
 ```
 
 Simple `GET` request:
