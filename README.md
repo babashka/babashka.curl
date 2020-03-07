@@ -86,6 +86,27 @@ Talking to a UNIX socket:
 ;;=> ["borkdude/babashka:0.0.73-SNAPSHOT"]
 ```
 
+Using the low-level API for fine grained(and safer) URL construction:
+
+``` clojure
+(-> (curl/request {:url {:scheme "https"
+                         :host   "httpbin.org"
+                         :port   443
+                         :path   "/get"
+                         :query  "q=test"}})
+    (json/parse-string true))
+;;=>
+{:args {:q "test"},
+ :headers
+ {:Accept "*/*",
+  :Host "httpbin.org",
+  :User-Agent "curl/7.64.1",
+  :X-Amzn-Trace-Id
+  "Root=1-5e63989e-7bd5b1dba75e951a84d61b6a"},
+ :origin "46.114.35.45",
+ :url "https://httpbin.org/get?q=test"}
+```
+
 ## Test
 
 ``` clojure
