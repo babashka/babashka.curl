@@ -4,7 +4,10 @@
             [clojure.string :as str]
             [clojure.java.io :as io])
   (:import [java.lang ProcessBuilder$Redirect]
-           [java.net URLEncoder]))
+           [java.net URLEncoder]
+           [java.net URI]))
+
+(set! *warn-on-reflection* true)
 
 ;;;; Utils
 
@@ -97,7 +100,19 @@
         data-raw (:data-raw opts)
         data-raw (when data-raw
                    ["--data-raw" data-raw])
-        url (:url opts)
+        url (let [url* (:url opts)]
+              (cond
+                (string? url*)
+                url*
+
+                (map? url*)
+                (str (URI. ^String (:scheme url*)
+                           ^String (:user url*)
+                           ^String (:host url*)
+                           ^Integer (:port url*)
+                           ^String (:path url*)
+                           ^String (:query url*)
+                           ^String (:fragment url*)))))
         in-file (:in-file opts)
         in-file (when in-file ["-d" (str "@" (.getCanonicalPath ^java.io.File in-file))])
         basic-auth (:basic-auth opts)
@@ -154,3 +169,12 @@
    (let [opts (assoc opts :url url
                      :method :patch)]
      (request opts))))
+
+(comment
+  ;; after running a python server in the source repo with `python3 -m http.server`
+  (request {:url      {:host   "localhost"
+                       :scheme "http"
+                       :port   8000
+                       :path   "/src/babashka"}
+            :raw-args ["-L"]})
+  )
