@@ -4,9 +4,9 @@ A tiny [curl](https://curl.haxx.se/) wrapper via idiomatic Clojure, inspired by 
 
 ## Status
 
-This library will be included in
-[babashka](https://github.com/borkdude/babashka/) but can also be used with JVM Clojure.
-Contributions welcome.
+This library will is part of [babashka](https://github.com/borkdude/babashka/)
+but can also be used with JVM Clojure. Check `CHANGES.md` before
+upgrading. Contributions welcome.
 
 ## Usage
 
