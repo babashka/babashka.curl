@@ -1,8 +1,7 @@
 (ns babashka.curl
   (:refer-clojure :exclude [get])
-  (:require #_[clojure.java.shell :refer [sh]]
-            [clojure.string :as str]
-            [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str])
   (:import [java.lang ProcessBuilder$Redirect]
            [java.net URLEncoder]
            [java.net URI]))
@@ -20,22 +19,25 @@
   `:throw?`: Unless `false`, exits script when the shell-command has a
   non-zero exit code, unless `throw?` is set to false."
   ([args] (shell-command args nil))
-  ([args {:keys [:throw?]
+  ([args {:keys [:throw? :as-stream?]
           :or {throw? true}}]
    (let [pb (let [pb (ProcessBuilder. ^java.util.List args)]
               (doto pb
                 (.redirectInput ProcessBuilder$Redirect/INHERIT)
                 (.redirectError ProcessBuilder$Redirect/INHERIT)))
          proc (.start pb)
-         string-out
-         (let [sw (java.io.StringWriter.)]
-           (with-open [w (io/reader (.getInputStream proc))]
-             (io/copy w sw))
-           (str sw))
-         exit-code (.waitFor proc)]
-     (when (and throw? (not (zero? exit-code)))
+         out
+         (if as-stream? (.getInputStream proc)
+             (let [sw (java.io.StringWriter.)]
+               (with-open [w (io/reader (.getInputStream proc))]
+                 (io/copy w sw))
+               (str sw)))
+         exit-code (when-not as-stream? (.waitFor proc))]
+     (when (and throw?
+                (not as-stream?)
+                (not (zero? exit-code)))
        (throw (ex-info "Got non-zero exit code" {:status exit-code})))
-     {:out string-out
+     {:out out
       :exit exit-code
       :err ""})))
 
@@ -121,7 +123,7 @@
                      basic-auth)
         basic-auth (when basic-auth
                      ["--user" basic-auth])]
-    (conj (reduce into ["curl" "--silent" "--show-error"]
+    (conj (reduce into ["curl" "--silent" "--show-error" "--location"]
                   [method headers accept-header data-raw in-file basic-auth
                    form-params (:raw-args opts)])
           (str url
@@ -131,10 +133,11 @@
 ;;;; End utils
 
 (defn request [opts]
-  (let [args (curl-command opts)]
+  (let [args (curl-command opts)
+        stream? (identical? :stream (:as opts))]
     (when (:debug? opts)
       (println (str/join " " (map pr-str args))))
-    (exec-curl args opts)))
+    (exec-curl args (assoc opts :as-stream? stream?))))
 
 (defn head
   ([url] (head url nil))

@@ -64,6 +64,16 @@ Basic auth:
 (curl/get "https://postman-echo.com/basic-auth" {:basic-auth ["postman" "password"]})
 ```
 
+Download a binary file as a stream:
+
+``` clojure
+(require '[clojure.java.io :as io])
+(io/copy
+  (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png"
+    {:as :stream})
+  (io/file "icon.png"))
+```
+
 Passing raw arguments to `curl` can be done with `:raw-args`:
 
 ``` clojure

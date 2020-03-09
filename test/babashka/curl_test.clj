@@ -1,9 +1,9 @@
 (ns babashka.curl-test
   (:require [babashka.curl :as curl]
-            [clojure.test :refer [deftest is testing]]
             [cheshire.core :as json]
+            [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.java.io :as io]))
+            [clojure.test :refer [deftest is testing]]))
 
 (deftest get-test
   (is (str/includes? (curl/get "https://httpstat.us/200")
@@ -80,6 +80,14 @@
                      (json/parse-string true))]
     (is (= {:q "test"} (:args response)))
     (is (= "httpbin.org" (get-in response [:headers :Host])))))
+
+(deftest download-binary-file-as-stream-test
+  (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
+    (.deleteOnExit tmp-file)
+    (io/copy (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream})
+             tmp-file)
+    (is (= (.length (io/file "test" "icon.png"))
+           (.length tmp-file)))))
 
 ;; untested, but works:
 ;; $ export BABASHKA_CLASSPATH=src
