@@ -132,12 +132,58 @@
 
 ;;;; End utils
 
+;;;; Response Parsing
+(defn- assoc-if-not-empty [map key val]
+  (if (empty? val)
+    map
+    (assoc map key val)))
+
+(defn- input-stream-eof? [^java.io.InputStream rdr]
+  (.mark rdr 1)
+  (let [eof? (= -1 (.read rdr))]
+    (when-not eof?
+      (.reset rdr))
+    eof?))
+
+(defn- curl-response->map
+  "Parses a curl response input stream into a map"
+  [input-stream opts]
+  (let [input-stream (java.io.DataInputStream. input-stream)]
+    (loop [redirects []]
+      (let [[status-line & header-lines]
+            ;; TODO: .readLine of DataInputStream is deprecated in the JDK
+            (take-while #(not (empty? %)) (repeatedly #(.readLine input-stream)))
+
+            status   (Integer/parseInt (second (str/split status-line  #" ")))
+            headers  (reduce (fn [acc header-line]
+                               (let [[k v] (str/split header-line #":" 2)]
+                                 (assoc acc (str/lower-case k) (str/trim v))))
+                             {}
+                             header-lines)
+            response {:status  status
+                      :headers headers}]
+
+        (if (and (get-in response [:headers "location"])
+                 (not (input-stream-eof? input-stream)))
+          ;; stream not ended, assume curl must be following the redirect
+          (recur (conj redirects response))
+
+          (-> response
+              (assoc-if-not-empty :redirects redirects)
+              (assoc :body (if (identical? :stream (:as opts))
+                             input-stream
+                             (slurp input-stream)))))))))
+
+;;;; End Response Parsing
+
 (defn request [opts]
   (let [args (curl-command opts)
         stream? (identical? :stream (:as opts))]
     (when (:debug? opts)
       (println (str/join " " (map pr-str args))))
-    (exec-curl args (assoc opts :as-stream? stream?))))
+    (if (:response opts)
+      (curl-response->map (exec-curl (conj args "--include") (assoc opts :as-stream? true)) opts)
+      (exec-curl args (assoc opts :as-stream? stream?)))))
 
 (defn head
   ([url] (head url nil))
@@ -180,4 +226,11 @@
                        :port   8000
                        :path   "/src/babashka"}
             :raw-args ["-L"]})
-  )
+
+  (request {:url      {:host   "localhost"
+                       :scheme "http"
+                       :port   8000
+                       :path   "/src/babashka"}
+            :response true})
+
+    )
