@@ -137,20 +137,18 @@
 
 ;; See https://hg.openjdk.java.net/jdk8/jdk8/jdk/file/687fd7c7986d/src/share/classes/java/io/DataInputStream.java#l501
 (defn- read-line [^PushbackInputStream is]
-  (let [sb (StringBuilder.)
-        res
-        (loop []
-          (let [c1 (.read is)]
-            (case c1
-              ;; 10 = \n, 13 = \r
-              (-1 10) (str sb)
-              13 (let [c2 (.read is)]
-                   (when (and (not= c2 10) (not= c2 -1))
-                     (.unread is c2))
-                   (str sb))
-              (do (.append sb (char c1))
-                  (recur)))))]
-    res))
+  (let [sb (StringBuilder.)]
+    (loop []
+      (let [c1 (.read is)]
+        (case c1
+          ;; 10 = \n, 13 = \r
+          (-1 10) :done
+          13 (let [c2 (.read is)]
+               (when (and (not= c2 10) (not= c2 -1))
+                 (.unread is c2)))
+          (do (.append sb (char c1))
+              (recur)))))
+    (str sb)))
 
 (defn- curl-response->map
   "Parses a curl response input stream into a map"
