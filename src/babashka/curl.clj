@@ -1,10 +1,11 @@
 (ns babashka.curl
-  (:refer-clojure :exclude [get])
+  (:refer-clojure :exclude [get read-line])
   (:require [clojure.java.io :as io]
             [clojure.string :as str])
   (:import [java.lang ProcessBuilder$Redirect]
            [java.net URLEncoder]
-           [java.net URI]))
+           [java.net URI]
+           [java.io PushbackInputStream]))
 
 (set! *warn-on-reflection* true)
 
@@ -132,12 +133,61 @@
 
 ;;;; End utils
 
+;;;; Response Parsing
+
+;; See https://hg.openjdk.java.net/jdk8/jdk8/jdk/file/687fd7c7986d/src/share/classes/java/io/DataInputStream.java#l501
+(defn- read-line [^PushbackInputStream is]
+  (let [sb (StringBuilder.)]
+    (loop []
+      (let [c1 (.read is)]
+        (case c1
+          ;; 10 = \n, 13 = \r
+          (-1 10) :done
+          13 (let [c2 (.read is)]
+               (when (and (not= c2 10) (not= c2 -1))
+                 (.unread is c2)))
+          (do (.append sb (char c1))
+              (recur)))))
+    (str sb)))
+
+(defn- curl-response->map
+  "Parses a curl response input stream into a map"
+  [^java.io.InputStream input-stream opts]
+  (let [input-stream (PushbackInputStream. input-stream)]
+    (loop [redirects []]
+      (let [[status-line & header-lines]
+            (take-while #(not (str/blank? %)) (repeatedly #(read-line input-stream)))
+            status   (Integer/parseInt (second (str/split status-line  #" ")))
+            headers  (reduce (fn [acc header-line]
+                               (let [[k v] (str/split header-line #":" 2)]
+                                 (assoc acc (str/lower-case k) (str/trim v))))
+                             {}
+                             header-lines)
+            response {:status  status
+                      :headers headers}]
+        (if (and (get-in response [:headers "location"])
+                 (pos? (.available input-stream)))
+          ;; stream not ended, assume curl must be following the redirect
+          (recur (conj redirects response))
+          (let [response (if (seq redirects)
+                           (assoc response :redirects redirects)
+                           response)
+                body (if (identical? :stream (:as opts))
+                       input-stream
+                       (slurp input-stream))
+                response (assoc response :body body)]
+            response))))))
+
+;;;; End Response Parsing
+
 (defn request [opts]
   (let [args (curl-command opts)
         stream? (identical? :stream (:as opts))]
     (when (:debug? opts)
       (println (str/join " " (map pr-str args))))
-    (exec-curl args (assoc opts :as-stream? stream?))))
+    (if (:response opts)
+      (curl-response->map (exec-curl (conj args "--include") (assoc opts :as-stream? true)) opts)
+      (exec-curl args (assoc opts :as-stream? stream?)))))
 
 (defn head
   ([url] (head url nil))
@@ -180,4 +230,11 @@
                        :port   8000
                        :path   "/src/babashka"}
             :raw-args ["-L"]})
+
+  (request {:url      {:host   "localhost"
+                       :scheme "http"
+                       :port   8000
+                       :path   "/src/babashka"}
+            :response true})
+
   )

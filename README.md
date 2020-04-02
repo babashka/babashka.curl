@@ -21,6 +21,13 @@ Simple `GET` request:
 ;;=> "200 OK"
 ```
 
+Simple `GET` request returned as a map:
+
+```
+(curl/get "https://httpstat.us/200" {:response true})
+;;=> {:status 200 :body "200 OK" :headers { .. }}
+```
+
 Passing headers:
 
 ``` clojure
