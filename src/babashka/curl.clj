@@ -1,10 +1,11 @@
 (ns babashka.curl
-  (:refer-clojure :exclude [get])
+  (:refer-clojure :exclude [get read-line])
   (:require [clojure.java.io :as io]
             [clojure.string :as str])
   (:import [java.lang ProcessBuilder$Redirect]
            [java.net URLEncoder]
-           [java.net URI]))
+           [java.net URI]
+           [java.io PushbackInputStream]))
 
 (set! *warn-on-reflection* true)
 
@@ -145,34 +146,45 @@
       (.reset rdr))
     eof?))
 
+(defn- read-line [^java.io.InputStream is]
+  (let [sb (StringBuilder.)
+        res (loop [in is]
+              (let [c1 (.read is)]
+                (case c1
+                  ;; 10 = \n, 13 = \r
+                  (-1 10) (str sb)
+                  13 (let [c2 (.read is)]
+                        (when-not (and (not= c2 10) (not= c2 -1))
+                          (let [in (PushbackInputStream. is)]
+                            (.unread in c2)))
+                        (str sb))
+                  (do (.append sb (char c1))
+                      (recur in)))))]
+    res))
+
 (defn- curl-response->map
   "Parses a curl response input stream into a map"
   [input-stream opts]
-  (let [input-stream (java.io.DataInputStream. input-stream)]
-    (loop [redirects []]
-      (let [[status-line & header-lines]
-            ;; TODO: .readLine of DataInputStream is deprecated in the JDK
-            (take-while #(not (empty? %)) (repeatedly #(.readLine input-stream)))
-
-            status   (Integer/parseInt (second (str/split status-line  #" ")))
-            headers  (reduce (fn [acc header-line]
-                               (let [[k v] (str/split header-line #":" 2)]
-                                 (assoc acc (str/lower-case k) (str/trim v))))
-                             {}
-                             header-lines)
-            response {:status  status
-                      :headers headers}]
-
-        (if (and (get-in response [:headers "location"])
-                 (not (input-stream-eof? input-stream)))
-          ;; stream not ended, assume curl must be following the redirect
-          (recur (conj redirects response))
-
-          (-> response
-              (assoc-if-not-empty :redirects redirects)
-              (assoc :body (if (identical? :stream (:as opts))
-                             input-stream
-                             (slurp input-stream)))))))))
+  (loop [redirects []]
+    (let [[status-line & header-lines]
+          (take-while #(not (str/blank? %)) (repeatedly #(read-line input-stream)))
+          status   (Integer/parseInt (second (str/split status-line  #" ")))
+          headers  (reduce (fn [acc header-line]
+                             (let [[k v] (str/split header-line #":" 2)]
+                               (assoc acc (str/lower-case k) (str/trim v))))
+                           {}
+                           header-lines)
+          response {:status  status
+                    :headers headers}]
+      (if (and (get-in response [:headers "location"])
+               (not (input-stream-eof? input-stream)))
+        ;; stream not ended, assume curl must be following the redirect
+        (recur (conj redirects response))
+        (-> response
+            (assoc-if-not-empty :redirects redirects)
+            (assoc :body (if (identical? :stream (:as opts))
+                           input-stream
+                           (slurp input-stream))))))))
 
 ;;;; End Response Parsing
 

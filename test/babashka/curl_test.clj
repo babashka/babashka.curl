@@ -123,7 +123,7 @@
            (.length tmp-file)))))
 
 (deftest curl-response->map-test
-  (are [expected input] (= expected (curl/curl-response->map (clojure.java.io/input-stream (.getBytes (str/join "\n" input))) {}))
+  (are [expected input] (= expected (#'curl/curl-response->map (clojure.java.io/input-stream (.getBytes (str/join "\n" input))) {}))
     ;;; Basic Response Parsing
     ;; expected
     {:status  200
