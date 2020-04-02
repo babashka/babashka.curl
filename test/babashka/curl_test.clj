@@ -126,7 +126,7 @@
     (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
       (.deleteOnExit tmp-file)
       (let [resp (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream
-                                                                                            :response :true})]
+                                                                                            :response true})]
         (is (= 200 (:status resp)))
         (io/copy (:body resp) tmp-file))
       (is (= (.length (io/file "test" "icon.png"))
