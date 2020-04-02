@@ -134,57 +134,51 @@
 ;;;; End utils
 
 ;;;; Response Parsing
-(defn- assoc-if-not-empty [map key val]
-  (if (empty? val)
-    map
-    (assoc map key val)))
 
-(defn- input-stream-eof? [^java.io.InputStream rdr]
-  (.mark rdr 1)
-  (let [eof? (= -1 (.read rdr))]
-    (when-not eof?
-      (.reset rdr))
-    eof?))
-
-(defn- read-line [^java.io.InputStream is]
+;; See https://hg.openjdk.java.net/jdk8/jdk8/jdk/file/687fd7c7986d/src/share/classes/java/io/DataInputStream.java#l501
+(defn- read-line [^PushbackInputStream is]
   (let [sb (StringBuilder.)
-        res (loop [in is]
-              (let [c1 (.read is)]
-                (case c1
-                  ;; 10 = \n, 13 = \r
-                  (-1 10) (str sb)
-                  13 (let [c2 (.read is)]
-                        (when (and (not= c2 10) (not= c2 -1))
-                          (let [in (PushbackInputStream. is)]
-                            (.unread in c2)))
-                        (str sb))
-                  (do (.append sb (char c1))
-                      (recur in)))))]
+        res
+        (loop []
+          (let [c1 (.read is)]
+            (case c1
+              ;; 10 = \n, 13 = \r
+              (-1 10) (str sb)
+              13 (let [c2 (.read is)]
+                   (when (and (not= c2 10) (not= c2 -1))
+                     (.unread is c2))
+                   (str sb))
+              (do (.append sb (char c1))
+                  (recur)))))]
     res))
 
 (defn- curl-response->map
   "Parses a curl response input stream into a map"
-  [input-stream opts]
-  (loop [redirects []]
-    (let [[status-line & header-lines]
-          (take-while #(not (str/blank? %)) (repeatedly #(read-line input-stream)))
-          status   (Integer/parseInt (second (str/split status-line  #" ")))
-          headers  (reduce (fn [acc header-line]
-                             (let [[k v] (str/split header-line #":" 2)]
-                               (assoc acc (str/lower-case k) (str/trim v))))
-                           {}
-                           header-lines)
-          response {:status  status
-                    :headers headers}]
-      (if (and (get-in response [:headers "location"])
-               (not (input-stream-eof? input-stream)))
-        ;; stream not ended, assume curl must be following the redirect
-        (recur (conj redirects response))
-        (-> response
-            (assoc-if-not-empty :redirects redirects)
-            (assoc :body (if (identical? :stream (:as opts))
-                           input-stream
-                           (slurp input-stream))))))))
+  [^java.io.InputStream input-stream opts]
+  (let [input-stream (PushbackInputStream. input-stream)]
+    (loop [redirects []]
+      (let [[status-line & header-lines]
+            (take-while #(not (str/blank? %)) (repeatedly #(read-line input-stream)))
+            status   (Integer/parseInt (second (str/split status-line  #" ")))
+            headers  (reduce (fn [acc header-line]
+                               (let [[k v] (str/split header-line #":" 2)]
+                                 (assoc acc (str/lower-case k) (str/trim v))))
+                             {}
+                             header-lines)
+            response {:status  status
+                      :headers headers}]
+        (if (and (get-in response [:headers "location"])
+                 (pos? (.available input-stream)))
+          ;; stream not ended, assume curl must be following the redirect
+          (recur (conj redirects response))
+          (let [response (if (seq redirects)
+                           (assoc response :redirects redirects)
+                           response)
+                body (if (identical? :stream (:as opts))
+                       input-stream
+                       (slurp input-stream))
+                response (assoc response :body body)]
+            response))))))
 
 ;;;; End Response Parsing
 
@@ -245,4 +239,4 @@
                        :path   "/src/babashka"}
             :response true})
 
-    )
+  )
