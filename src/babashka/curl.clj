@@ -154,7 +154,7 @@
                   ;; 10 = \n, 13 = \r
                   (-1 10) (str sb)
                   13 (let [c2 (.read is)]
-                        (when-not (and (not= c2 10) (not= c2 -1))
+                        (when (and (not= c2 10) (not= c2 -1))
                           (let [in (PushbackInputStream. is)]
                             (.unread in c2)))
                         (str sb))
