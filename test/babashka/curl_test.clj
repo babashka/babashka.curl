@@ -115,12 +115,22 @@
     (is (= "httpbin.org" (get-in response [:headers :Host])))))
 
 (deftest download-binary-file-as-stream-test
-  (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
-    (.deleteOnExit tmp-file)
-    (io/copy (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream})
-             tmp-file)
-    (is (= (.length (io/file "test" "icon.png"))
-           (.length tmp-file)))))
+  (testing "download image"
+    (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
+      (.deleteOnExit tmp-file)
+      (io/copy (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream})
+               tmp-file)
+      (is (= (.length (io/file "test" "icon.png"))
+             (.length tmp-file)))))
+  (testing "download image with response headers"
+    (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
+      (.deleteOnExit tmp-file)
+      (let [resp (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream
+                                                                                            :response :true})]
+        (is (= 200 (:status resp)))
+        (io/copy (:body resp) tmp-file))
+      (is (= (.length (io/file "test" "icon.png"))
+             (.length tmp-file))))))
 
 (deftest read-line-test
   (let [test (fn [s]
