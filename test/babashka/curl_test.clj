@@ -115,15 +115,39 @@
     (is (= "httpbin.org" (get-in response [:headers :Host])))))
 
 (deftest download-binary-file-as-stream-test
-  (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
-    (.deleteOnExit tmp-file)
-    (io/copy (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream})
-             tmp-file)
-    (is (= (.length (io/file "test" "icon.png"))
-           (.length tmp-file)))))
+  (testing "download image"
+    (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
+      (.deleteOnExit tmp-file)
+      (io/copy (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream})
+               tmp-file)
+      (is (= (.length (io/file "test" "icon.png"))
+             (.length tmp-file)))))
+  (testing "download image with response headers"
+    (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
+      (.deleteOnExit tmp-file)
+      (let [resp (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream
+                                                                                            :response true})]
+        (is (= 200 (:status resp)))
+        (io/copy (:body resp) tmp-file))
+      (is (= (.length (io/file "test" "icon.png"))
+             (.length tmp-file))))))
+
+(deftest read-line-test
+  (let [test (fn [s]
+               (let [is (new java.io.ByteArrayInputStream (.getBytes s))
+                     is (new java.io.PushbackInputStream is)]
+                 [(doall (take-while #(not (str/blank? %)) (repeatedly #(#'curl/read-line is))))
+                  (not-empty (slurp is))]))]
+    (are [expected input] (= expected (test input))
+      [["foo" "bar"] nil] "foo\rbar"
+      [["foo" "bar"] "HELLO!"] "foo\rbar\n\nHELLO!"
+      [["foo" "bar"] nil] "foo\r\nbar"
+      [["foo" "bar"] nil] "foo\nbar")))
 
 (deftest curl-response->map-test
-  (are [expected input] (= expected (curl/curl-response->map (clojure.java.io/input-stream (.getBytes (str/join "\n" input))) {}))
+  (are [expected input] (= expected
+                           (#'curl/curl-response->map
+                            (clojure.java.io/input-stream (.getBytes (str/join "\n" input))) {}))
     ;;; Basic Response Parsing
     ;; expected
     {:status  200
