@@ -14,7 +14,7 @@ jobs:
     - name: "Prepare Java"
       uses: "actions/setup-java@v1"
       with:
-        java-version: "11"
+        java-version: "8"
 
     - name: "Restore Cache"
       uses: "actions/cache@v1"
@@ -26,7 +26,7 @@ jobs:
     - name: "Setup Clojure"
       uses: DeLaGuardo/setup-clojure@2.0
       with:
-        tools-deps: '1.10.1.469'
+        tools-deps: '1.10.1.536'
 
     - name: "Run tests"
       run: "clojure -A:test"
