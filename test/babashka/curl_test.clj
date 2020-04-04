@@ -6,67 +6,68 @@
             [clojure.test :refer [deftest is testing are]]))
 
 (deftest get-test
-  (is (str/includes? (curl/get "https://httpstat.us/200")
+  (is (str/includes? (:body (curl/get "https://httpstat.us/200"))
                      "200"))
   (is (= 200
          (-> (curl/get "https://httpstat.us/200"
                        {:headers {"Accept" "application/json"}})
+             :body
              (json/parse-string true)
              :code)))
   (testing "query params"
     (is (= {:foo1 "bar1", :foo2 "bar2"}
            (-> (curl/get "https://postman-echo.com/get" {:query-params {"foo1" "bar1" "foo2" "bar2"}})
+               :body
                (json/parse-string true)
                :args)))))
 
 (deftest head-test
-  (is (str/includes? (curl/head "https://postman-echo.com/head")
-                     "200 OK")))
+  (is (= 200 (:status (curl/head "https://postman-echo.com/head")))))
 
 (deftest post-test
-  (is (subs (curl/post "https://postman-echo.com/post")
+  (is (subs (:body (curl/post "https://postman-echo.com/post"))
             0 10))
   (is (str/includes?
-       (curl/post "https://postman-echo.com/post"
-                  {:body "From Clojure"})
+       (:body (curl/post "https://postman-echo.com/post"
+                        {:body "From Clojure"}))
        "From Clojure"))
   (testing "file-body"
     (is (str/includes?
-         (curl/post "https://postman-echo.com/post"
-                    {:body (io/file "README.md")})
+         (:body (curl/post "https://postman-echo.com/post"
+                          {:body (io/file "README.md")}))
          "babashka.curl")))
   (testing "form-params"
     (is (str/includes?
-         (curl/post "https://postman-echo.com/post"
-                    {:form-params {"name" "michiel"}})
+         (:body (curl/post "https://postman-echo.com/post"
+                          {:form-params {"name" "michiel"}}))
          "michiel"))))
 
 (deftest patch-test
   (is (str/includes?
-       (curl/patch "https://postman-echo.com/patch"
-                   {:body "hello"})
+       (:body (curl/patch "https://postman-echo.com/patch"
+                         {:body "hello"}))
        "hello")))
 
 (deftest basic-auth-test
   (is (re-find #"authenticated.*true"
-       (curl/get "https://postman-echo.com/basic-auth" {:basic-auth ["postman" "password"]}))))
+               (:body
+                (curl/get "https://postman-echo.com/basic-auth"
+                          {:basic-auth ["postman" "password"]})))))
 
 (deftest raw-args-test
-  (is (str/includes?
-       (curl/post "https://postman-echo.com/post"
-                  {:body "From Clojure"
-                   :raw-args ["-D" "-"]})
-       "200 OK")))
+  (is (= 200 (:status (curl/post "https://postman-echo.com/post"
+                                 {:body "From Clojure"
+                                  :raw-args ["-D" "-"]})))))
 
 (deftest get-response-object-test
-  (let [response (curl/get "https://httpstat.us/200" {:response true})]
+  (let [response (curl/get "https://httpstat.us/200")]
     (is (map? response))
     (is (= 200 (:status response)))
     (is (= "200 OK" (:body response)))
     (is (= "Microsoft-IIS/10.0" (get-in response [:headers "server"]))))
 
   (testing "response object as stream"
-    (let [response (curl/get "https://httpstat.us/200" {:response true :as :stream})]
+    (let [response (curl/get "https://httpstat.us/200" {:as :stream})]
       (is (map? response))
       (is (= 200 (:status response)))
       (is (instance? java.io.InputStream (:body response)))
@@ -74,8 +75,7 @@
 
   (testing "response object with following redirect"
     (let [response (curl/get "https://httpbin.org/redirect-to?url=https://www.httpbin.org"
-                             {:raw-args ["-L"]
-                              :response true})]
+                             {:raw-args ["-L"]})]
       (is (map? response))
       (is (= 200 (:status response)))
       (is (= 302 (-> response :redirects first :status)))
@@ -83,8 +83,7 @@
 
   (testing "response object without fully following redirects"
     (let [response (curl/get "https://httpbin.org/redirect-to?url=https://www.httpbin.org"
-                             {:response true
-                              :raw-args ["--max-redirs" "0"]})]
+                             {:raw-args ["--max-redirs" "0"]})]
       (is (map? response))
       (is (= 302 (:status response)))
       (is (= "" (:body response)))
@@ -95,12 +94,14 @@
   (is (= 200
          (-> (curl/get "https://httpstat.us/200"
                        {:accept :json})
+             :body
              (json/parse-string true)
              :code))))
 
 (deftest url-encode-query-params-test
   (is (= {"my query param?" "hello there"}
          (-> (curl/get "https://postman-echo.com/get" {:query-params {"my query param?" "hello there"}})
+             :body
              (json/parse-string)
              (get "args")))))
 
@@ -110,6 +111,7 @@
                                           :port   443
                                           :path   "/get"
                                           :query  "q=test"}})
+                     :body
                      (json/parse-string true))]
     (is (= {:q "test"} (:args response)))
     (is (= "httpbin.org" (get-in response [:headers :Host])))))
@@ -118,15 +120,14 @@
   (testing "download image"
     (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
       (.deleteOnExit tmp-file)
-      (io/copy (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream})
+      (io/copy (:body (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream}))
                tmp-file)
       (is (= (.length (io/file "test" "icon.png"))
              (.length tmp-file)))))
   (testing "download image with response headers"
     (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
       (.deleteOnExit tmp-file)
-      (let [resp (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream
-                                                                                            :response true})]
+      (let [resp (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream})]
         (is (= 200 (:status resp)))
         (io/copy (:body resp) tmp-file))
       (is (= (.length (io/file "test" "icon.png"))
