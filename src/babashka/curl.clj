@@ -19,31 +19,18 @@
   return it.
   `:throw?`: Unless `false`, exits script when the shell-command has a
   non-zero exit code, unless `throw?` is set to false."
-  ([args] (shell-command args nil))
-  ([args {:keys [:throw? :as-stream?]
-          :or {throw? true}}]
-   (let [pb (let [pb (ProcessBuilder. ^java.util.List args)]
-              (doto pb
-                (.redirectInput ProcessBuilder$Redirect/INHERIT)
-                (.redirectError ProcessBuilder$Redirect/INHERIT)))
-         proc (.start pb)
-         out
-         (if as-stream? (.getInputStream proc)
-             (let [sw (java.io.StringWriter.)]
-               (with-open [w (io/reader (.getInputStream proc))]
-                 (io/copy w sw))
-               (str sw)))
-         exit-code (when-not as-stream? (.waitFor proc))]
-     (when (and throw?
-                (not as-stream?)
-                (not (zero? exit-code)))
-       (throw (ex-info "Got non-zero exit code" {:status exit-code})))
-     {:out out
-      :exit exit-code
-      :err ""})))
+  [args]
+  (let [pb (let [pb (ProcessBuilder. ^java.util.List args)]
+             (doto pb
+               (.redirectInput ProcessBuilder$Redirect/INHERIT)
+               (.redirectError ProcessBuilder$Redirect/INHERIT)))
+        proc (.start pb)
+        out (.getInputStream proc)]
+    {:out out
+     :proc proc}))
 
 (defn- exec-curl [args opts]
-  (let [res (shell-command args opts)
+  (let [res (shell-command args)
         exit (:exit res)
         out (:out res)]
     ;; TODO: handle non-zero exit with exception?  TODO: should we return a map
@@ -124,7 +111,7 @@
                      basic-auth)
         basic-auth (when basic-auth
                      ["--user" basic-auth])]
-    (conj (reduce into ["curl" "--silent" "--show-error" "--location"]
+    (conj (reduce into ["curl" "--silent" "--show-error" "--location" "--include"]
                   [method headers accept-header data-raw in-file basic-auth
                    form-params (:raw-args opts)])
           (str url
@@ -150,17 +137,26 @@
               (recur)))))
     (str sb)))
 
+(defn- read-headers [^PushbackInputStream is]
+  (loop [headers []]
+    (let [next-line (read-line is)]
+      (if (str/blank? next-line)
+        headers
+        (recur (conj headers next-line))))))
+
 (defn- curl-response->map
   "Parses a curl response input stream into a map"
   [^java.io.InputStream input-stream opts]
   (let [input-stream (PushbackInputStream. input-stream)]
     (loop [redirects []]
-      (let [[status-line & header-lines]
-            (take-while #(not (str/blank? %)) (repeatedly #(read-line input-stream)))
+      (let [headers (read-headers input-stream)
+            [status-line & header-lines] headers
             status   (Integer/parseInt (second (str/split status-line  #" ")))
             headers  (reduce (fn [acc header-line]
                                (let [[k v] (str/split header-line #":" 2)]
-                                 (assoc acc (str/lower-case k) (str/trim v))))
+                                 (if (and k v)
+                                   (assoc acc (str/lower-case k) (str/trim v))
+                                   acc)))
                              {}
                              header-lines)
             response {:status  status
@@ -181,13 +177,11 @@
 ;;;; End Response Parsing
 
 (defn request [opts]
-  (let [args (curl-command opts)
-        stream? (identical? :stream (:as opts))]
+  (let [args (curl-command opts)]
     (when (:debug? opts)
       (println (str/join " " (map pr-str args))))
-    (if (:response opts)
-      (curl-response->map (exec-curl (conj args "--include") (assoc opts :as-stream? true)) opts)
-      (exec-curl args (assoc opts :as-stream? stream?)))))
+    (-> (exec-curl args opts)
+        (curl-response->map opts))))
 
 (defn head
   ([url] (head url nil))

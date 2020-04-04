@@ -18,14 +18,7 @@ Simple `GET` request:
 
 ``` clojure
 (curl/get "https://httpstat.us/200")
-;;=> "200 OK"
-```
-
-Simple `GET` request returned as a map with `:body`, `:status` and `:headers`:
-
-``` clojure
-(curl/get "https://httpstat.us/200" {:response true})
-;;=> {:status 200 :body "200 OK" :headers { ... }}
+;;=> {:status 200, :body "200 OK", :headers { ... }}
 ```
 
 Passing headers:
@@ -33,7 +26,7 @@ Passing headers:
 ``` clojure
 (require '[cheshire.core :as json])
 (def resp (curl/get "https://httpstat.us/200" {:headers {"Accept" "application/json"}}))
-(json/parse-string resp) ;;=> {"code" 200, "description" "OK"}
+(json/parse-string (:body resp)) ;;=> {"code" 200, "description" "OK"}
 ```
 
 Query parameters:
@@ -41,6 +34,7 @@ Query parameters:
 ``` clojure
 (->
   (curl/get "https://postman-echo.com/get" {:query-params {"q" "clojure"}})
+  :body
   (json/parse-string true)
   :args)
 ;;=> {:q "clojure"}
@@ -50,43 +44,48 @@ A `POST` request with a `:body`:
 
 ``` clojure
 (def resp (curl/post "https://postman-echo.com/post" {:body "From Clojure"}))
-(json/parse-string resp) ;;=> {"args" {}, "data" "", ...}
+(json/parse-string (:body resp)) ;;=> {"args" {}, "data" "", ...}
 ```
 
 Posting a file as a `POST` body:
 
 ``` clojure
-(curl/post "https://postman-echo.com/post" {:body (io/file "README.md")})
+(require '[clojure.java.io :as io])
+(:status (curl/post "https://postman-echo.com/post" {:body (io/file "README.md")}))
+;; => 100
 ```
 
 Posting form params:
 
 ``` clojure
-(curl/post "https://postman-echo.com/post" {:form-params {"name" "Michiel"}})
+(:status (curl/post "https://postman-echo.com/post" {:form-params {"name" "Michiel"}}))
+;; => 100
 ```
 
 Basic auth:
 
 ``` clojure
-(curl/get "https://postman-echo.com/basic-auth" {:basic-auth ["postman" "password"]})
+(:body (curl/get "https://postman-echo.com/basic-auth" {:basic-auth ["postman" "password"]}))
+;; => "{\"authenticated\":true}"
 ```
 
 Download a binary file as a stream:
 
 ``` clojure
-(require '[clojure.java.io :as io])
 (io/copy
-  (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png"
-    {:as :stream})
+  (:body (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png"
+    {:as :stream}))
   (io/file "icon.png"))
+(.length (io/file "icon.png"))
+;;=> 7748
 ```
 
 Passing raw arguments to `curl` can be done with `:raw-args`:
 
 ``` clojure
-(require '[clojure.string :as str])
-(def resp (curl/get "https://www.clojure.org" {:raw-args ["-D" "-"]}))
-(-> (str/split resp #"\n") first) ;;=> "HTTP/1.1 200 OK\r"
+(:status (curl/get "http://www.clojure.org" {:raw-args ["--max-redirs" "0"]}))
+curl: (47) Maximum (0) redirects followed
+301
 ```
 
 Talking to a UNIX socket:
@@ -95,10 +94,11 @@ Talking to a UNIX socket:
 (-> (curl/get "http://localhost/images/json"
               {:raw-args ["--unix-socket"
                           "/var/run/docker.sock"]})
+    :body
     (json/parse-string true)
     first
     :RepoTags)
-;;=> ["borkdude/babashka:0.0.73-SNAPSHOT"]
+;;=> ["borkdude/babashka:0.0.79-SNAPSHOT"]
 ```
 
 Using the low-level API for fine grained(and safer) URL construction:
@@ -109,6 +109,7 @@ Using the low-level API for fine grained(and safer) URL construction:
                          :port   443
                          :path   "/get"
                          :query  "q=test"}})
+    :body
     (json/parse-string true))
 ;;=>
 {:args {:q "test"},
@@ -125,7 +126,7 @@ Using the low-level API for fine grained(and safer) URL construction:
 ## Test
 
 ``` clojure
-$ clj -A:test
+$ clojure -A:test
 ```
 
 ## License
