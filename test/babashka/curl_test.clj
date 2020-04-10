@@ -3,7 +3,7 @@
             [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.test :refer [deftest is testing are]]))
+            [clojure.test :refer [deftest is testing]]))
 
 (deftest get-test
   (is (str/includes? (:body (curl/get "https://httpstat.us/200"))
@@ -54,11 +54,6 @@
                 (curl/get "https://postman-echo.com/basic-auth"
                           {:basic-auth ["postman" "password"]})))))
 
-#_(deftest raw-args-test
-  (is (= 200 (:status (curl/post "https://postman-echo.com/post"
-                                 {:body "From Clojure"
-                                  :raw-args ["-D" "-"]})))))
-
 (deftest get-response-object-test
   (let [response (curl/get "https://httpstat.us/200")]
     (is (map? response))
@@ -74,12 +69,9 @@
       (is (= "200 OK" (slurp (:body response))))))
 
   (testing "response object with following redirect"
-    (let [response (curl/get "https://httpbin.org/redirect-to?url=https://www.httpbin.org"
-                             {:raw-args ["-L"]})]
+    (let [response (curl/get "https://httpbin.org/redirect-to?url=https://www.httpbin.org")]
       (is (map? response))
-      (is (= 200 (:status response)))
-      #_(is (= 302 (-> response :redirects first :status)))
-      #_(is (= "https://www.httpbin.org" (get-in response [:redirects 0 :headers "location"])))))
+      (is (= 200 (:status response)))))
 
   (testing "response object without fully following redirects"
     (let [response (curl/get "https://httpbin.org/redirect-to?url=https://www.httpbin.org"
@@ -133,84 +125,8 @@
       (is (= (.length (io/file "test" "icon.png"))
              (.length tmp-file))))))
 
-#_(deftest curl-response->map-test
-  (are [expected input] (= expected
-                           (#'curl/curl-response->map
-                            (clojure.java.io/input-stream (.getBytes (str/join "\n" input))) {}))
-    ;;; Basic Response Parsing
-    ;; expected
-    {:status  200
-     :headers {"server"         "SimpleHTTP/0.6 Python/3.7.3"
-               "date"           "Wed, 01 Apr 2020 04:38:35 GMT"
-               "content-type"   "application/octet-stream"
-               "content-length" "39"
-               "last-modified"  "Wed, 01 Apr 2020 04:23:07 GMT"}
-     :body    "hello\nworld\n\nfoo"}
-
-    ;; input
-    ["HTTP/1.0 200 OK"
-     "Server: SimpleHTTP/0.6 Python/3.7.3"
-     "Date: Wed, 01 Apr 2020 04:38:35 GMT"
-     "Content-type: application/octet-stream"
-     "Content-Length: 39"
-     "Last-Modified: Wed, 01 Apr 2020 04:23:07 GMT"
-     ""
-     "hello"
-     "world"
-     ""
-     "foo"]
-
-    ;;; Following a redirect
-    ;; expected
-    {:status    200,
-     :headers   {"date"          "Wed, 01 Apr 2020 05:16:48 GMT"
-                 "cache-control" "private, max-age=0"
-                 "content-type"  "text/html; charset=ISO-8859-1"
-                 "vary"          "Accept-Encoding"}
-     :body      "<!doctype html>"
-     :redirects [{:status  302
-                  :headers {"date"           "Wed, 01 Apr 2020 05:16:48 GMT"
-                            "content-type"   "text/html; charset=utf-8"
-                            "content-length" "0"
-                            "location"       "https://www.google.com"
-                            "server"         "gunicorn/19.9.0"}}]}
-
-    ;; input
-    ["HTTP/2 302"
-     "date: Wed, 01 Apr 2020 05:16:48 GMT"
-     "content-type: text/html; charset=utf-8"
-     "content-length: 0"
-     "location: https://www.google.com"
-     "server: gunicorn/19.9.0"
-     ""
-     "HTTP/2 200"
-     "date: Wed, 01 Apr 2020 05:16:48 GMT"
-     "cache-control: private, max-age=0"
-     "content-type: text/html; charset=ISO-8859-1"
-     "vary: Accept-Encoding"
-     ""
-     "<!doctype html>"]
-
-    ;;; Redirect without following, i.e.
-    ;; $ curl --include -L 'https://httpbin.org/redirect-to?url=https://www.google.com' --max-redirs 0
-    ;; expected
-    {:status  302
-     :headers {"date"           "Wed, 01 Apr 2020 05:23:34 GMT"
-               "content-type"   "text/html; charset=utf-8"
-               "content-length" "0"
-               "location"       "https://www.google.com"
-               "server"         "gunicorn/19.9.0"}
-     :body    ""}
-
-    ;; input
-    ["HTTP/2 302"
-     "date: Wed, 01 Apr 2020 05:23:34 GMT"
-     "content-type: text/html; charset=utf-8"
-     "content-length: 0"
-     "location: https://www.google.com"
-     "server: gunicorn/19.9.0"]))
-
-;; untested, but works:
-;; $ export BABASHKA_CLASSPATH=src
-;; $ cat README.md | bb "(require '[babashka.curl :as curl]) (curl/post \"https://postman-echo.com/post\" {:raw-args [\"-d\" \"@-\"]})"
-;; "{\"args\":{},\"data\":\"\",\"files\":{},\"form\":{\"# babashka.curlA tiny [curl](https://curl.haxx.se/) wrapper via idiomatic Clojure,
+;; Tested manually:
+;; from https://github.com/enkot/SSE-Fake-Server: npm install sse-fake-server
+;; start with: PORT=1668 node fakeserver.js
+;; ./bb '(let [resp (curl/get "http://localhost:1668/stream" {:as :stream}) body (:body resp) proc (:process resp)] (prn (take 1 (line-seq (io/reader body)))) (.destroy proc))'
+;; ("data: Stream Hello!")
