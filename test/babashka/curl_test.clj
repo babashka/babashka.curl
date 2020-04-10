@@ -37,10 +37,10 @@
                           {:body (io/file "README.md")}))
          "babashka.curl")))
   (testing "form-params"
-    (is (str/includes?
-         (:body (curl/post "https://postman-echo.com/post"
-                          {:form-params {"name" "michiel"}}))
-         "michiel"))))
+    (let [body (:body (curl/post "https://postman-echo.com/post"
+                                 {:form-params {"name" "Michiel Borkent"}}))]
+      (is (str/includes? body "Michiel Borkent"))
+      (is (str/starts-with? body "{")))))
 
 (deftest patch-test
   (is (str/includes?
