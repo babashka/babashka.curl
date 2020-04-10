@@ -129,7 +129,7 @@
 (defn- curl-response->map
   "Parses a curl response input stream into a map"
   [^java.io.InputStream input-stream opts]
-  (let [;; use PushbackInputstream to start reading, else curl won't do anything
+  (let [;; use PushbackInputstream to start reading, else curl won't write header file yet
         pbis (PushbackInputStream. input-stream)
         _ (let [c (.read pbis)]
             (when-not (= -1 c)
