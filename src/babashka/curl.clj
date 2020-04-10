@@ -5,7 +5,7 @@
   (:import [java.lang ProcessBuilder$Redirect]
            [java.net URLEncoder]
            [java.net URI]
-           [java.io PushbackInputStream]))
+           [java.io File SequenceInputStream ByteArrayInputStream]))
 
 (set! *warn-on-reflection* true)
 
@@ -31,12 +31,9 @@
 
 (defn- exec-curl [args opts]
   (let [res (shell-command args)
-        exit (:exit res)
-        out (:out res)]
-    ;; TODO: handle non-zero exit with exception?  TODO: should we return a map
-    ;; with a :body or just the body?  I think the latter is what I want 99% of
-    ;; the time, so maybe the first should be supported via an option?
-    out))
+        out (:out res)
+        proc (:proc res)]
+    (assoc opts :out out :proc proc)))
 
 (defn- file? [f]
   (let [f (io/file f)]
@@ -110,10 +107,15 @@
                      (str/join ":" basic-auth)
                      basic-auth)
         basic-auth (when basic-auth
-                     ["--user" basic-auth])]
-    (conj (reduce into ["curl" "--silent" "--show-error" "--location" "--include"]
+                     ["--user" basic-auth])
+        header-file (.getPath ^File (:header-file opts))
+        stream? (identical? :stream (:as opts))]
+    (conj (reduce into ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
                   [method headers accept-header data-raw in-file basic-auth
-                   form-params (:raw-args opts)])
+                   form-params
+                   ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
+                   (when stream? ["-N"])
+                   (:raw-args opts)])
           (str url
                (when query-params
                  (str "?" query-params))))))
@@ -122,69 +124,50 @@
 
 ;;;; Response Parsing
 
-;; See https://hg.openjdk.java.net/jdk8/jdk8/jdk/file/687fd7c7986d/src/share/classes/java/io/DataInputStream.java#l501
-(defn- read-line [^PushbackInputStream is]
-  (let [sb (StringBuilder.)]
-    (loop []
-      (let [c1 (.read is)]
-        (case c1
-          ;; 10 = \n, 13 = \r
-          (-1 10) :done
-          13 (let [c2 (.read is)]
-               (when (and (not= c2 10) (not= c2 -1))
-                 (.unread is c2)))
-          (do (.append sb (char c1))
-              (recur)))))
-    (str sb)))
-
-(defn- read-headers [^PushbackInputStream is]
-  (loop [headers []
-         prev-line nil]
-    (let [next-line (read-line is)]
-      (if (and (not= prev-line "HTTP/1.1 100 Continue")
-               (str/blank? next-line))
-        headers
-        (recur (conj headers next-line)
-               next-line)))))
+(defn- read-headers [^File header-file]
+  (line-seq (io/reader header-file)))
 
 (defn- curl-response->map
   "Parses a curl response input stream into a map"
-  [^java.io.InputStream input-stream opts]
-  (let [input-stream (PushbackInputStream. input-stream)]
-    (loop [redirects []]
-      (let [headers (read-headers input-stream)
-            [status-line & header-lines] headers
-            status   (Integer/parseInt (second (str/split status-line  #" ")))
-            headers  (reduce (fn [acc header-line]
-                               (let [[k v] (str/split header-line #":" 2)]
-                                 (if (and k v)
-                                   (assoc acc (str/lower-case k) (str/trim v))
-                                   acc)))
-                             {}
-                             header-lines)
-            response {:status  status
-                      :headers headers}]
-        (if (and (get-in response [:headers "location"])
-                 (pos? (.available input-stream)))
-          ;; stream not ended, assume curl must be following the redirect
-          (recur (conj redirects response))
-          (let [response (if (seq redirects)
-                           (assoc response :redirects redirects)
-                           response)
-                body (if (identical? :stream (:as opts))
-                       input-stream
-                       (slurp input-stream))
-                response (assoc response :body body)]
-            response))))))
+  [opts]
+  (let [is ^java.io.InputStream (:out opts)
+        c (.read is)
+        bais (when-not (= -1 c)
+               (ByteArrayInputStream. (byte-array [c])))
+        is (if bais (SequenceInputStream. bais is)
+               is)
+        body (if (identical? :stream (:as opts))
+               is
+               (slurp is))
+        headers (read-headers (:header-file opts))
+        [status headers]
+        (reduce (fn [[status parsed-headers :as acc] header-line]
+                    (if (str/starts-with? header-line "HTTP/")
+                      [(Integer/parseInt (second (str/split header-line  #" "))) parsed-headers]
+                      (let [[k v] (str/split header-line #":" 2)]
+                        (if (and k v)
+                          [status (assoc parsed-headers (str/lower-case k) (str/trim v))]
+                          acc))))
+                  [nil {}]
+                  headers)
+        response {:status status
+                  :headers headers
+                  :body body
+                  :process (:proc opts)}]
+    response))
 
 ;;;; End Response Parsing
 
 (defn request [opts]
-  (let [args (curl-command opts)]
+  (let [header-file (File/createTempFile "babashka.curl" ".headers")
+        opts (assoc opts :header-file header-file)
+        args (curl-command opts)]
     (when (:debug? opts)
       (println (str/join " " (map pr-str args))))
-    (-> (exec-curl args opts)
-        (curl-response->map opts))))
+    (let [response (-> (exec-curl args opts)
+                       (curl-response->map))]
+      (.delete header-file)
+      response)))
 
 (defn head
   ([url] (head url nil))
