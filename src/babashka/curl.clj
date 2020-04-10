@@ -138,11 +138,14 @@
     (str sb)))
 
 (defn- read-headers [^PushbackInputStream is]
-  (loop [headers []]
+  (loop [headers []
+         prev-line nil]
     (let [next-line (read-line is)]
-      (if (str/blank? next-line)
+      (if (and (not= prev-line "HTTP/1.1 100 Continue")
+               (str/blank? next-line))
         headers
-        (recur (conj headers next-line))))))
+        (recur (conj headers next-line)
+               next-line)))))
 
 (defn- curl-response->map
   "Parses a curl response input stream into a map"
