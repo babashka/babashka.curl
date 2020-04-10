@@ -54,7 +54,7 @@
                 (curl/get "https://postman-echo.com/basic-auth"
                           {:basic-auth ["postman" "password"]})))))
 
-(deftest raw-args-test
+#_(deftest raw-args-test
   (is (= 200 (:status (curl/post "https://postman-echo.com/post"
                                  {:body "From Clojure"
                                   :raw-args ["-D" "-"]})))))
@@ -78,8 +78,8 @@
                              {:raw-args ["-L"]})]
       (is (map? response))
       (is (= 200 (:status response)))
-      (is (= 302 (-> response :redirects first :status)))
-      (is (= "https://www.httpbin.org" (get-in response [:redirects 0 :headers "location"])))))
+      #_(is (= 302 (-> response :redirects first :status)))
+      #_(is (= "https://www.httpbin.org" (get-in response [:redirects 0 :headers "location"])))))
 
   (testing "response object without fully following redirects"
     (let [response (curl/get "https://httpbin.org/redirect-to?url=https://www.httpbin.org"
@@ -133,19 +133,7 @@
       (is (= (.length (io/file "test" "icon.png"))
              (.length tmp-file))))))
 
-(deftest read-line-test
-  (let [test (fn [s]
-               (let [is (new java.io.ByteArrayInputStream (.getBytes s))
-                     is (new java.io.PushbackInputStream is)]
-                 [(doall (take-while #(not (str/blank? %)) (repeatedly #(#'curl/read-line is))))
-                  (not-empty (slurp is))]))]
-    (are [expected input] (= expected (test input))
-      [["foo" "bar"] nil] "foo\rbar"
-      [["foo" "bar"] "HELLO!"] "foo\rbar\n\nHELLO!"
-      [["foo" "bar"] nil] "foo\r\nbar"
-      [["foo" "bar"] nil] "foo\nbar")))
-
-(deftest curl-response->map-test
+#_(deftest curl-response->map-test
   (are [expected input] (= expected
                            (#'curl/curl-response->map
                             (clojure.java.io/input-stream (.getBytes (str/join "\n" input))) {}))
