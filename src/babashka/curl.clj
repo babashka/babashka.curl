@@ -127,15 +127,22 @@
 (defn- read-headers [^File header-file]
   (line-seq (io/reader header-file)))
 
+(defn- read-then-unread
+  [^java.io.InputStream is]
+  (let [c    (.read is)
+        bais (when-not (= -1 c)
+               (ByteArrayInputStream. (byte-array [c])))]
+    (if bais
+      (SequenceInputStream. bais is)
+        is)))
+
 (defn- curl-response->map
   "Parses a curl response input stream into a map"
   [opts]
   (let [is ^java.io.InputStream (:out opts)
-        c (.read is)
-        bais (when-not (= -1 c)
-               (ByteArrayInputStream. (byte-array [c])))
-        is (if bais (SequenceInputStream. bais is)
-               is)
+        ;; curl does not write to :header-file until stdout is read from once.
+        ;; This ensures :status and :headers are parsed when option `:as :stream` is set.
+        is (read-then-unread is)
         body (if (identical? :stream (:as opts))
                is
                (slurp is))
