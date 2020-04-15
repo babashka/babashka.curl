@@ -3,7 +3,8 @@
             [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.test :refer [deftest is testing]]))
+            [clojure.test :refer [deftest is testing]]
+            [clojure.java.io :as io]))
 
 (deftest get-test
   (is (str/includes? (:body (curl/get "https://httpstat.us/200"))
@@ -29,12 +30,12 @@
             0 10))
   (is (str/includes?
        (:body (curl/post "https://postman-echo.com/post"
-                        {:body "From Clojure"}))
+                         {:body "From Clojure"}))
        "From Clojure"))
   (testing "file-body"
     (is (str/includes?
          (:body (curl/post "https://postman-echo.com/post"
-                          {:body (io/file "README.md")}))
+                           {:body (io/file "README.md")}))
          "babashka.curl")))
   (testing "form-params"
     (let [body (:body (curl/post "https://postman-echo.com/post"
@@ -54,7 +55,7 @@
 (deftest patch-test
   (is (str/includes?
        (:body (curl/patch "https://postman-echo.com/patch"
-                         {:body "hello"}))
+                          {:body "hello"}))
        "hello")))
 
 (deftest basic-auth-test
@@ -134,8 +135,39 @@
       (is (= (.length (io/file "test" "icon.png"))
              (.length tmp-file))))))
 
-;; Tested manually:
-;; from https://github.com/enkot/SSE-Fake-Server: npm install sse-fake-server
-;; start with: PORT=1668 node fakeserver.js
-;; ./bb '(let [resp (curl/get "http://localhost:1668/stream" {:as :stream}) body (:body resp) proc (:process resp)] (prn (take 1 (line-seq (io/reader body)))) (.destroy proc))'
-;; ("data: Stream Hello!")
+(deftest stream-test
+  ;; This test aims to test what is tested manually as follows:
+  ;; - from https://github.com/enkot/SSE-Fake-Server: npm install sse-fake-server
+  ;; - start with: PORT=1668 node fakeserver.js
+  ;; - ./bb '(let [resp (curl/get "http://localhost:1668/stream" {:as :stream}) body (:body resp) proc (:process resp)] (prn (take 1 (line-seq (io/reader body)))) (.destroy proc))'
+  ;; ("data: Stream Hello!")
+  (let [server (java.net.ServerSocket. 1668)
+        port (.getLocalPort server)]
+    (future (try (with-open
+                  [socket (.accept server)
+                   out (io/writer (.getOutputStream socket))]
+                  (binding [*out* out]
+                    (println "HTTP/1.1 200 OK")
+                    (println "Content-Type: text/event-stream")
+                    (println "Connection: keep-alive")
+                    (println)
+                    (loop []
+                      (try (loop []
+                             (println "data: Stream Hello!")
+                             (Thread/sleep 20)
+                             (recur))
+                           (catch Exception _ nil)))))
+                 (catch Exception e
+                   (prn e))))
+    (let [resp (curl/get (str "http://localhost:" port)
+                         {:as :stream})
+          status (:status resp)
+          headers (:headers resp)
+          body (:body resp)
+          proc (:process resp)]
+      (is (= 200 status))
+      (is (= "text/event-stream" (get headers "content-type")))
+      (is (= (repeat 2 "data: Stream Hello!") (take 2 (line-seq (io/reader body)))))
+      (is (= (repeat 10 "data: Stream Hello!") (take 10 (line-seq (io/reader body)))))
+      (.destroy proc))))
+
