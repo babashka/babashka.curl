@@ -130,11 +130,12 @@
 (defn- read-then-unread
   [^java.io.InputStream is]
   (let [c    (.read is)
-        bais (when-not (= -1 c)
-               (ByteArrayInputStream. (byte-array [c])))]
-    (if bais
-      (SequenceInputStream. bais is)
-        is)))
+        eof? (= -1 c)]
+    (if eof?
+      is
+      (-> (byte-array [c])
+          (ByteArrayInputStream.)
+          (SequenceInputStream. is)))))
 
 (defn- curl-response->map
   "Parses a curl response input stream into a map"
