@@ -40,7 +40,16 @@
     (let [body (:body (curl/post "https://postman-echo.com/post"
                                  {:form-params {"name" "Michiel Borkent"}}))]
       (is (str/includes? body "Michiel Borkent"))
-      (is (str/starts-with? body "{")))))
+      (is (str/starts-with? body "{")))
+    (testing "form-params from file"
+      (let [tmp-file (java.io.File/createTempFile "foo" "bar")
+            _ (spit tmp-file "Michiel Borkent")
+            _ (.deleteOnExit tmp-file)
+            body (:body (curl/post "https://postman-echo.com/post"
+                                   {:form-params {"file" (io/file tmp-file)
+                                                  "filename" (.getPath tmp-file)}}))]
+        (is (str/includes? body "foo"))
+        (is (str/starts-with? body "{"))))))
 
 (deftest patch-test
   (is (str/includes?

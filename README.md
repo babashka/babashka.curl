@@ -12,6 +12,8 @@ upgrading as the API may still undergo some changes. Contributions welcome.
 
 ``` clojure
 (require '[babashka.curl :as curl])
+(require '[clojure.java.io :as io]) ;; optional
+(require '[cheshire.core :as json]) ;; optional
 ```
 
 Simple `GET` request:
@@ -24,7 +26,6 @@ Simple `GET` request:
 Passing headers:
 
 ``` clojure
-(require '[cheshire.core :as json])
 (def resp (curl/get "https://httpstat.us/200" {:headers {"Accept" "application/json"}}))
 (json/parse-string (:body resp)) ;;=> {"code" 200, "description" "OK"}
 ```
@@ -50,16 +51,28 @@ A `POST` request with a `:body`:
 Posting a file as a `POST` body:
 
 ``` clojure
-(require '[clojure.java.io :as io])
 (:status (curl/post "https://postman-echo.com/post" {:body (io/file "README.md")}))
-;; => 100
+;; => 200
 ```
 
 Posting form params:
 
 ``` clojure
 (:status (curl/post "https://postman-echo.com/post" {:form-params {"name" "Michiel"}}))
-;; => 100
+;; => 200
+```
+
+Post a file as `multipart/form-data`:
+
+``` clojure
+(->
+  (curl/post "https://postman-echo.com/post"
+    {:form-params {"filename" "somefile" "file" (io/file "README.md")}})
+  :body
+  (json/parse-string)
+  (get "files")
+  (contains? "README.md"))
+;; => true
 ```
 
 Basic auth:

@@ -36,9 +36,10 @@
     (assoc opts :out out :proc proc)))
 
 (defn- file? [f]
-  (let [f (io/file f)]
-    (and (.exists f)
-         (.isFile f))))
+  (when (instance? File f)
+    (let [f ^File f]
+      (and (.exists f)
+           (.isFile f)))))
 
 (defn- accept-header [opts]
   (when-let [accept (:accept opts)]
@@ -74,8 +75,10 @@
         form-params (loop [params* (transient [])
                            kvs (seq form-params)]
                       (if kvs
-                        (let [[k v] (first kvs)]
-                          (recur (reduce conj! params* ["-F" (str k "=" v)]) (next kvs)))
+                        (let [[k v] (first kvs)
+                              v (if (file? v) (str "@" (.getPath ^File v)) v)
+                              param ["-F" (str k "=" v)]]
+                          (recur (reduce conj! params* param) (next kvs)))
                         (persistent! params*)))
         query-params (when-let [qp (:query-params opts)]
                        (loop [params* (transient [])
