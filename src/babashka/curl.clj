@@ -127,8 +127,13 @@
 
 ;;;; Response Parsing
 
-(defn- read-headers [^File header-file]
-  (line-seq (io/reader header-file)))
+(defn- read-headers
+  [^File header-file]
+  (with-open [^java.io.BufferedReader rdr (io/reader header-file)]
+    (loop [lines []]
+      (if-let [line (.readLine rdr)]
+        (recur (conj lines line))
+        lines))))
 
 (defn- read-then-unread
   [^java.io.InputStream is]
