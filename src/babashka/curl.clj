@@ -22,18 +22,20 @@
   [args]
   (let [pb (let [pb (ProcessBuilder. ^java.util.List args)]
              (doto pb
-               (.redirectInput ProcessBuilder$Redirect/INHERIT)
-               (.redirectError ProcessBuilder$Redirect/INHERIT)))
+               (.redirectInput ProcessBuilder$Redirect/INHERIT)))
         proc (.start pb)
-        out (.getInputStream proc)]
+        out (.getInputStream proc)
+        err (.getErrorStream proc)]
     {:out out
+     :err err
      :proc proc}))
 
 (defn- exec-curl [args opts]
   (let [res (shell-command args)
         out (:out res)
+        err (:err res)
         proc (:proc res)]
-    (assoc opts :out out :proc proc)))
+    (assoc opts :out out :err err :proc proc)))
 
 (defn- file? [f]
   (when (instance? File f)
@@ -169,7 +171,11 @@
         response {:status status
                   :headers headers
                   :body body
-                  :process (:proc opts)}]
+                  :process (:proc opts)}
+        err-is ^java.io.InputStream (slurp (:err opts))
+        response (if (not (str/blank? err-is))
+                   (assoc response :curl/stderr err-is)
+                   response)]
     response))
 
 ;;;; End Response Parsing
