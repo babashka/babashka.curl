@@ -157,10 +157,10 @@ Using the low-level API for fine grained(and safer) URL construction:
 ### Debugging requests
 
 Set`:debug` to `true` to get debugging information along with the response. The
-`:command` contains the command that was executed to obtain the response. The
-`:options` value contains options that were used to construct the command. Note
-that all of these values are for debugging only and contain implementation
-details that may change in the future.
+`:command` value contains the command that was executed to obtain the
+response. The `:options` value contains options that were used to construct the
+command. Note that all of these values are for debugging only and contain
+implementation details that may change in the future.
 
 ``` clojure
 (def resp (curl/head "https://postman-echo.com/head" {:debug true}))
