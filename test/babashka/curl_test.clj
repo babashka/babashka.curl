@@ -3,8 +3,7 @@
             [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.test :refer [deftest is testing]]
-            [clojure.java.io :as io]))
+            [clojure.test :refer [deftest is testing]]))
 
 (deftest get-test
   (is (str/includes? (:body (curl/get "https://httpstat.us/200"))
@@ -171,3 +170,9 @@
       (is (= (repeat 10 "data: Stream Hello!") (take 10 (line-seq (io/reader body)))))
       (.destroy proc))))
 
+(deftest command-test
+  (let [resp (curl/head "https://postman-echo.com/head" {:debug true})
+        command (:command resp)
+        opts (:options resp)]
+    (is (pos? (.indexOf command "--head")))
+    (is (identical? :head (:method opts)))))

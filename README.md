@@ -16,6 +16,8 @@ upgrading as the API may still undergo some changes. Contributions welcome.
 (require '[cheshire.core :as json]) ;; optional
 ```
 
+### GET
+
 Simple `GET` request:
 
 ``` clojure
@@ -23,12 +25,16 @@ Simple `GET` request:
 ;;=> {:status 200, :body "200 OK", :headers { ... }}
 ```
 
+### Headers
+
 Passing headers:
 
 ``` clojure
 (def resp (curl/get "https://httpstat.us/200" {:headers {"Accept" "application/json"}}))
 (json/parse-string (:body resp)) ;;=> {"code" 200, "description" "OK"}
 ```
+
+### Query parameters
 
 Query parameters:
 
@@ -40,6 +46,8 @@ Query parameters:
   :args)
 ;;=> {:q "clojure"}
 ```
+
+### POST
 
 A `POST` request with a `:body`:
 
@@ -75,12 +83,16 @@ Post a file as `multipart/form-data`:
 ;; => true
 ```
 
+### Basic auth
+
 Basic auth:
 
 ``` clojure
 (:body (curl/get "https://postman-echo.com/basic-auth" {:basic-auth ["postman" "password"]}))
 ;; => "{\"authenticated\":true}"
 ```
+
+### Download binary
 
 Download a binary file as a stream:
 
@@ -93,6 +105,8 @@ Download a binary file as a stream:
 ;;=> 7748
 ```
 
+### Passing through arguments
+
 Passing raw arguments to `curl` can be done with `:raw-args`:
 
 ``` clojure
@@ -100,6 +114,8 @@ Passing raw arguments to `curl` can be done with `:raw-args`:
 curl: (47) Maximum (0) redirects followed
 301
 ```
+
+### Unix sockets
 
 Talking to a UNIX socket:
 
@@ -113,6 +129,8 @@ Talking to a UNIX socket:
     :RepoTags)
 ;;=> ["borkdude/babashka:0.0.79-SNAPSHOT"]
 ```
+
+### URL construction
 
 Using the low-level API for fine grained(and safer) URL construction:
 
@@ -134,6 +152,22 @@ Using the low-level API for fine grained(and safer) URL construction:
   "Root=1-5e63989e-7bd5b1dba75e951a84d61b6a"},
  :origin "46.114.35.45",
  :url "https://httpbin.org/get?q=test"}
+```
+
+### Debugging requests
+
+Providing `:debug true` will provide extra debugging information along with the
+response. The `:command` contains the command that was executed to obtain the
+response. The `:options` value contains options that were used to construct the
+command. Note that all of these values are for debugging only and contain
+implementation details that may change in the future.
+
+``` clojure
+(def resp (curl/head "https://postman-echo.com/head" {:debug true}))
+(:command resp) ;;=>
+["curl" "--silent" "--show-error" "--location" "--dump-header" "/var/folders/2m/h3cvrr1x4296p315vbk7m32c0000gp/T/babashka.curl16567082489957878064.headers" "--head" "https://postman-echo.com/head"]
+(:options resp)
+{:debug true, :url "https://postman-echo.com/head", :method :head, :header-file #object[java.io.File 0x61d34b4 "/var/folders/2m/h3cvrr1x4296p315vbk7m32c0000gp/T/babashka.curl16567082489957878064.headers"]}
 ```
 
 ## Test

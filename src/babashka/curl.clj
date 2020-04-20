@@ -52,7 +52,7 @@
   [^String unencoded]
   (URLEncoder/encode unencoded "UTF-8"))
 
-(defn curl-command [opts]
+(defn- curl-command [opts]
   (let [body (:body opts)
         opts (if body
                (cond-> opts
@@ -62,7 +62,7 @@
         method (when-let [method (:method opts)]
                  (case method
                    :head ["--head"]
-                   ["-X" (-> method name str/upper-case)]))
+                   ["--request" (-> method name str/upper-case)]))
         headers (:headers opts)
         headers (loop [headers* (transient [])
                        kvs (seq headers)]
@@ -77,7 +77,7 @@
                       (if kvs
                         (let [[k v] (first kvs)
                               v (if (file? v) (str "@" (.getPath ^File v)) v)
-                              param ["-F" (str k "=" v)]]
+                              param ["--form" (str k "=" v)]]
                           (recur (reduce conj! params* param) (next kvs)))
                         (persistent! params*)))
         query-params (when-let [qp (:query-params opts)]
@@ -158,14 +158,14 @@
         headers (read-headers (:header-file opts))
         [status headers]
         (reduce (fn [[status parsed-headers :as acc] header-line]
-                    (if (str/starts-with? header-line "HTTP/")
-                      [(Integer/parseInt (second (str/split header-line  #" "))) parsed-headers]
-                      (let [[k v] (str/split header-line #":" 2)]
-                        (if (and k v)
-                          [status (assoc parsed-headers (str/lower-case k) (str/trim v))]
-                          acc))))
-                  [nil {}]
-                  headers)
+                  (if (str/starts-with? header-line "HTTP/")
+                    [(Integer/parseInt (second (str/split header-line  #" "))) parsed-headers]
+                    (let [[k v] (str/split header-line #":" 2)]
+                      (if (and k v)
+                        [status (assoc parsed-headers (str/lower-case k) (str/trim v))]
+                        acc))))
+                [nil {}]
+                headers)
         response {:status status
                   :headers headers
                   :body body
@@ -177,12 +177,15 @@
 (defn request [opts]
   (let [header-file (File/createTempFile "babashka.curl" ".headers")
         opts (assoc opts :header-file header-file)
-        args (curl-command opts)]
-    (when (:debug? opts)
-      (println (str/join " " (map pr-str args))))
-    (let [response (-> (exec-curl args opts)
-                       (curl-response->map))]
-      (.delete header-file)
+        args (curl-command opts)
+        response (let [response (-> (exec-curl args opts)
+                                    (curl-response->map))]
+                   (.delete header-file)
+                   response)]
+    (if (:debug opts)
+      (assoc response
+             :command args
+             :options opts)
       response)))
 
 (defn head
