@@ -164,10 +164,10 @@ details that may change in the future.
 
 ``` clojure
 (def resp (curl/head "https://postman-echo.com/head" {:debug true}))
-(:command resp) ;;=>
-["curl" "--silent" "--show-error" "--location" "--dump-header" "/var/folders/2m/h3cvrr1x4296p315vbk7m32c0000gp/T/babashka.curl16567082489957878064.headers" "--head" "https://postman-echo.com/head"]
+(:command resp)
+;;=> ["curl" "--silent" "--show-error" "--location" "--dump-header" "/var/folders/2m/h3cvrr1x4296p315vbk7m32c0000gp/T/babashka.curl16567082489957878064.headers" "--head" "https://postman-echo.com/head"]
 (:options resp)
-{:debug true, :url "https://postman-echo.com/head", :method :head, :header-file #object[java.io.File 0x61d34b4 "/var/folders/2m/h3cvrr1x4296p315vbk7m32c0000gp/T/babashka.curl16567082489957878064.headers"]}
+;;=> {:debug true, :url "https://postman-echo.com/head", :method :head, :header-file #object[java.io.File 0x61d34b4 "/var/folders/2m/h3cvrr1x4296p315vbk7m32c0000gp/T/babashka.curl16567082489957878064.headers"]}
 ```
 
 ## Test
