@@ -172,9 +172,9 @@
                   :headers headers
                   :body body
                   :process (:proc opts)}
-        err-is ^java.io.InputStream (slurp (:err opts))
-        response (if (not (str/blank? err-is))
-                   (assoc response :curl/stderr err-is)
+        err ^java.io.InputStream (slurp (:err opts))
+        response (if (not (str/blank? err))
+                   (assoc response :curl/stderr err)
                    response)]
     response))
 
