@@ -5,6 +5,10 @@
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]))
 
+(defmethod clojure.test/report :begin-test-var [m]
+  (println "===" (-> m :var meta :name))
+  (println))
+
 (deftest get-test
   (is (str/includes? (:body (curl/get "https://httpstat.us/200"))
                      "200"))
@@ -176,3 +180,8 @@
         opts (:options resp)]
     (is (pos? (.indexOf command "--head")))
     (is (identical? :head (:method opts)))))
+
+(deftest stderr-test
+  (let [resp (curl/get "blah://postman-echo.com/get")]
+    (is (contains? resp :err))
+    (is (str/starts-with? (:err resp) "curl: (1)"))))

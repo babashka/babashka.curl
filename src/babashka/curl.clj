@@ -22,18 +22,20 @@
   [args]
   (let [pb (let [pb (ProcessBuilder. ^java.util.List args)]
              (doto pb
-               (.redirectInput ProcessBuilder$Redirect/INHERIT)
-               (.redirectError ProcessBuilder$Redirect/INHERIT)))
+               (.redirectInput ProcessBuilder$Redirect/INHERIT)))
         proc (.start pb)
-        out (.getInputStream proc)]
+        out (.getInputStream proc)
+        err (.getErrorStream proc)]
     {:out out
+     :err err
      :proc proc}))
 
 (defn- exec-curl [args opts]
   (let [res (shell-command args)
         out (:out res)
+        err (:err res)
         proc (:proc res)]
-    (assoc opts :out out :proc proc)))
+    (assoc opts :out out :err err :proc proc)))
 
 (defn- file? [f]
   (when (instance? File f)
@@ -152,9 +154,11 @@
         ;; curl does not write to :header-file until stdout is read from once.
         ;; This ensures :status and :headers are parsed when option `:as :stream` is set.
         is (read-then-unread is)
-        body (if (identical? :stream (:as opts))
-               is
-               (slurp is))
+        err (:err opts)
+        stream? (identical? :stream (:as opts))
+        [body err] (if stream?
+                     [is err]
+                     [(slurp is) (slurp err)])
         headers (read-headers (:header-file opts))
         [status headers]
         (reduce (fn [[status parsed-headers :as acc] header-line]
@@ -169,6 +173,7 @@
         response {:status status
                   :headers headers
                   :body body
+                  :err err
                   :process (:proc opts)}]
     response))
 
