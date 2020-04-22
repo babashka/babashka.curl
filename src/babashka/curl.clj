@@ -174,7 +174,7 @@
                   :process (:proc opts)}
         err ^java.io.InputStream (slurp (:err opts))
         response (if (not (str/blank? err))
-                   (assoc response :curl/stderr err)
+                   (assoc response :error err)
                    response)]
     response))
 

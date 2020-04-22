@@ -179,5 +179,5 @@
 
 (deftest stderr-test
   (let [resp (curl/get "blah://postman-echo.com/get")]
-    (is (contains? resp :curl/stderr))
-    (is (str/starts-with? (:curl/stderr resp) "curl: (1)"))))
+    (is (contains? resp :error))
+    (is (str/starts-with? (:error resp) "curl: (1)"))))
