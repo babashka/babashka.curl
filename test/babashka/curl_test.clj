@@ -176,3 +176,8 @@
         opts (:options resp)]
     (is (pos? (.indexOf command "--head")))
     (is (identical? :head (:method opts)))))
+
+(deftest stderr-test
+  (let [resp (curl/get "blah://postman-echo.com/get")]
+    (is (contains? resp :curl/stderr))
+    (is (str/starts-with? (:curl/stderr resp) "curl: (1)"))))
