@@ -154,9 +154,11 @@
         ;; curl does not write to :header-file until stdout is read from once.
         ;; This ensures :status and :headers are parsed when option `:as :stream` is set.
         is (read-then-unread is)
-        body (if (identical? :stream (:as opts))
-               is
-               (slurp is))
+        err (:err opts)
+        stream? (identical? :stream (:as opts))
+        [body err] (if stream?
+                     [is err]
+                     [(slurp is) (slurp err)])
         headers (read-headers (:header-file opts))
         [status headers]
         (reduce (fn [[status parsed-headers :as acc] header-line]
@@ -171,11 +173,8 @@
         response {:status status
                   :headers headers
                   :body body
-                  :process (:proc opts)}
-        err ^java.io.InputStream (slurp (:err opts))
-        response (if (not (str/blank? err))
-                   (assoc response :error err)
-                   response)]
+                  :err err
+                  :process (:proc opts)}]
     response))
 
 ;;;; End Response Parsing
