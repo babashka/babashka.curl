@@ -88,7 +88,8 @@
 
   (testing "response object without fully following redirects"
     (let [response (curl/get "https://httpbin.org/redirect-to?url=https://www.httpbin.org"
-                             {:raw-args ["--max-redirs" "0"]})]
+                             {:raw-args ["--max-redirs" "0"]
+                              :throw-exceptions false})]
       (is (map? response))
       (is (= 302 (:status response)))
       (is (= "" (:body response)))
@@ -182,6 +183,6 @@
     (is (identical? :head (:method opts)))))
 
 (deftest stderr-test
-  (let [resp (curl/get "blah://postman-echo.com/get")]
+  (let [resp (curl/get "blah://postman-echo.com/get" {:throw-exceptions false})]
     (is (contains? resp :err))
     (is (str/starts-with? (:err resp) "curl: (1)"))))
