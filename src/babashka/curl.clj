@@ -197,6 +197,17 @@
     (and (:throw opts)
          (or exceptional-status? nonzero-exit?))))
 
+(defn- build-ex-msg [response]
+  (cond
+    (:status response)
+    (str "status " (:status response))
+
+    (not (str/blank? (:err response)))
+    (:err response)
+
+    :else
+    "error"))
+
 (defn request [opts]
   (let [header-file (File/createTempFile "babashka.curl" ".headers")
         opts (assoc opts :header-file header-file)
@@ -214,7 +225,7 @@
                    response)
         stream? (identical? :stream (:as opts))]
     (if (and (not stream?) (should-throw? response opts))
-      (throw (ex-info "error" response))
+      (throw (ex-info (build-ex-msg response) response))
       response)))
 
 (defn head
