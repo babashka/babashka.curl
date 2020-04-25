@@ -3,7 +3,8 @@
             [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.test :refer [deftest is testing]]))
+            [clojure.test :refer [deftest is testing]])
+  (:import (clojure.lang ExceptionInfo)))
 
 (defmethod clojure.test/report :begin-test-var [m]
   (println "===" (-> m :var meta :name))
@@ -188,6 +189,33 @@
     (is (identical? :head (:method opts)))))
 
 (deftest stderr-test
-  (let [resp (curl/get "blah://postman-echo.com/get" {:throw false})]
-    (is (contains? resp :err))
-    (is (str/starts-with? (:err resp) "curl: (1)"))))
+  (testing "should throw"
+    (let [ex (is (thrown? ExceptionInfo (curl/get "blah://postman-echo.com/get")))
+          ex-data (ex-data ex)]
+      (is (contains? ex-data :err))
+      (is (str/starts-with? (:err ex-data) "curl: (1)"))
+      (is (= 1 (:exit ex-data)))))
+  (testing "should not throw"
+    (let [resp (curl/get "blah://postman-echo.com/get" {:throw false})]
+      (is (contains? resp :err))
+      (is (str/starts-with? (:err resp) "curl: (1)"))
+      (is (= 1 (:exit resp))))))
+
+(deftest exceptional-status-test
+  (testing "should throw"
+    (let [ex (is (thrown? ExceptionInfo (curl/get "https://httpstat.us/404")))
+          response (ex-data ex)]
+      (is (= 404 (:status response)))
+      (is (zero? (:exit response)))))
+  (testing "should not throw"
+    (let [response (curl/get "https://httpstat.us/404" {:throw false})]
+      (is (= 404 (:status response)))
+      (is (zero? (:exit response)))))
+  (testing "should not throw when streaming"
+    (let [response (curl/get "https://httpstat.us/404" {:throw true
+                                                        :as :stream})]
+      (is (= 404 (:status response)))
+      (is (= "404 Not Found" (slurp (:body response))))
+      (is (= "" (slurp (:err response))))
+      (is (delay? (:exit response)))
+      (is (zero? @(:exit response))))))
