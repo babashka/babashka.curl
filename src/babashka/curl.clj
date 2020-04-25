@@ -19,11 +19,14 @@
   return it.
   `:throw?`: Unless `false`, exits script when the shell-command has a
   non-zero exit code, unless `throw?` is set to false."
-  [args]
-  (let [pb (let [pb (ProcessBuilder. ^java.util.List args)]
-             (doto pb
-               (.redirectInput ProcessBuilder$Redirect/INHERIT)))
+  [args opts]
+  (let [pb (ProcessBuilder. ^java.util.List args)
         proc (.start pb)
+        _ (println "copy")
+        _ (when-let [is (:in-stream opts)]
+            (io/copy (io/reader is) (io/writer (.getOutputStream proc)))
+            (.flush (.getOutputStream proc))
+            (.close (.getOutputStream proc)))
         out (.getInputStream proc)
         err (.getErrorStream proc)]
     {:out out
@@ -31,7 +34,7 @@
      :proc proc}))
 
 (defn- exec-curl [args opts]
-  (let [res (shell-command args)
+  (let [res (shell-command args opts)
         out (:out res)
         err (:err res)
         proc (:proc res)]
@@ -42,6 +45,9 @@
     (let [f ^File f]
       (and (.exists f)
            (.isFile f)))))
+
+(defn- input-stream? [x]
+  (instance? java.io.InputStream x))
 
 (defn- accept-header [opts]
   (when-let [accept (:accept opts)]
@@ -59,7 +65,8 @@
         opts (if body
                (cond-> opts
                  (string? body) (assoc :data-raw body)
-                 (file? body) (assoc :in-file body))
+                 (file? body) (assoc :in-file body)
+                 (input-stream? body) (assoc :in-stream body))
                opts)
         method (when-let [method (:method opts)]
                  (case method
@@ -107,6 +114,8 @@
                            ^String (:fragment url*)))))
         in-file (:in-file opts)
         in-file (when in-file ["-d" (str "@" (.getCanonicalPath ^java.io.File in-file))])
+        in-stream (:in-stream opts)
+        in-stream (when in-stream ["-d" "@-"])
         basic-auth (:basic-auth opts)
         basic-auth (if (sequential? basic-auth)
                      (str/join ":" basic-auth)
@@ -116,7 +125,7 @@
         header-file (.getPath ^File (:header-file opts))
         stream? (identical? :stream (:as opts))]
     (conj (reduce into ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
-                  [method headers accept-header data-raw in-file basic-auth
+                  [method headers accept-header data-raw in-file in-stream basic-auth
                    form-params
                    ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
                    (when stream? ["-N"])
