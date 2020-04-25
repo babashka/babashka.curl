@@ -2,8 +2,7 @@
   (:refer-clojure :exclude [get read-line])
   (:require [clojure.java.io :as io]
             [clojure.string :as str])
-  (:import [java.lang ProcessBuilder$Redirect]
-           [java.net URLEncoder]
+  (:import [java.net URLEncoder]
            [java.net URI]
            [java.io File SequenceInputStream ByteArrayInputStream]))
 
@@ -19,11 +18,12 @@
   return it.
   `:throw?`: Unless `false`, exits script when the shell-command has a
   non-zero exit code, unless `throw?` is set to false."
-  [args]
-  (let [pb (let [pb (ProcessBuilder. ^java.util.List args)]
-             (doto pb
-               (.redirectInput ProcessBuilder$Redirect/INHERIT)))
+  [args opts]
+  (let [pb (ProcessBuilder. ^java.util.List args)
         proc (.start pb)
+        _ (when-let [is (:in-stream opts)]
+            (with-open [stdin (.getOutputStream proc)]
+              (io/copy is stdin)))
         out (.getInputStream proc)
         err (.getErrorStream proc)]
     {:out out
@@ -31,7 +31,7 @@
      :proc proc}))
 
 (defn- exec-curl [args opts]
-  (let [res (shell-command args)
+  (let [res (shell-command args opts)
         out (:out res)
         err (:err res)
         proc (:proc res)]
@@ -42,6 +42,9 @@
     (let [f ^File f]
       (and (.exists f)
            (.isFile f)))))
+
+(defn- input-stream? [x]
+  (instance? java.io.InputStream x))
 
 (defn- accept-header [opts]
   (when-let [accept (:accept opts)]
@@ -59,7 +62,8 @@
         opts (if body
                (cond-> opts
                  (string? body) (assoc :data-raw body)
-                 (file? body) (assoc :in-file body))
+                 (file? body) (assoc :in-file body)
+                 (input-stream? body) (assoc :in-stream body))
                opts)
         method (when-let [method (:method opts)]
                  (case method
@@ -107,6 +111,8 @@
                            ^String (:fragment url*)))))
         in-file (:in-file opts)
         in-file (when in-file ["-d" (str "@" (.getCanonicalPath ^java.io.File in-file))])
+        in-stream (:in-stream opts)
+        in-stream (when in-stream ["-d" "@-"])
         basic-auth (:basic-auth opts)
         basic-auth (if (sequential? basic-auth)
                      (str/join ":" basic-auth)
@@ -115,15 +121,16 @@
                      ["--user" basic-auth])
         header-file (.getPath ^File (:header-file opts))
         stream? (identical? :stream (:as opts))]
-    (conj (reduce into ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
-                  [method headers accept-header data-raw in-file basic-auth
-                   form-params
-                   ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
-                   (when stream? ["-N"])
-                   (:raw-args opts)])
-          (str url
-               (when query-params
-                 (str "?" query-params))))))
+    [(conj (reduce into ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
+                   [method headers accept-header data-raw in-file in-stream basic-auth
+                    form-params
+                    ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
+                    (when stream? ["-N"])
+                    (:raw-args opts)])
+           (str url
+                (when query-params
+                  (str "?" query-params))))
+     opts]))
 
 ;;;; End utils
 
@@ -195,7 +202,7 @@
         opts (assoc opts :header-file header-file)
         default-opts {:throw true}
         opts (merge default-opts opts)
-        args (curl-command opts)
+        [args opts] (curl-command opts)
         response (let [response (-> (exec-curl args opts)
                                     (curl-response->map))]
                    (.delete header-file)

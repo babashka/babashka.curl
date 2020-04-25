@@ -35,10 +35,15 @@
        (:body (curl/post "https://postman-echo.com/post"
                          {:body "From Clojure"}))
        "From Clojure"))
-  (testing "file-body"
+  (testing "file body"
     (is (str/includes?
          (:body (curl/post "https://postman-echo.com/post"
                            {:body (io/file "README.md")}))
+         "babashka.curl")))
+  (testing "stream body"
+    (is (str/includes?
+         (:body (curl/post "https://postman-echo.com/post"
+                           {:body (io/input-stream "README.md")}))
          "babashka.curl")))
   (testing "form-params"
     (let [body (:body (curl/post "https://postman-echo.com/post"
