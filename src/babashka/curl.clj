@@ -187,13 +187,13 @@
 (defn- should-throw? [response opts]
   (let [exceptional-status? (not (unexceptional-status? (:status response)))
         nonzero-exit? (not (zero? (:exit response)))]
-    (and (:throw-exceptions opts)
+    (and (:throw opts)
          (or exceptional-status? nonzero-exit?))))
 
 (defn request [opts]
   (let [header-file (File/createTempFile "babashka.curl" ".headers")
         opts (assoc opts :header-file header-file)
-        default-opts {:throw-exceptions true}
+        default-opts {:throw true}
         opts (merge default-opts opts)
         args (curl-command opts)
         response (let [response (-> (exec-curl args opts)
