@@ -72,6 +72,13 @@ Posting a file as a `POST` body:
 ;; => 200
 ```
 
+Posting a stream as a `POST` body:
+
+``` clojure
+(:status (curl/post "https://postman-echo.com/post" {:body (io/input-stream "README.md")}))
+;; => 200
+```
+
 Posting form params:
 
 ``` clojure
