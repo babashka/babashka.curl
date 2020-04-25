@@ -2,8 +2,7 @@
   (:refer-clojure :exclude [get read-line])
   (:require [clojure.java.io :as io]
             [clojure.string :as str])
-  (:import [java.lang ProcessBuilder$Redirect]
-           [java.net URLEncoder]
+  (:import [java.net URLEncoder]
            [java.net URI]
            [java.io File SequenceInputStream ByteArrayInputStream]))
 
@@ -22,11 +21,9 @@
   [args opts]
   (let [pb (ProcessBuilder. ^java.util.List args)
         proc (.start pb)
-        _ (println "copy")
         _ (when-let [is (:in-stream opts)]
-            (io/copy (io/reader is) (io/writer (.getOutputStream proc)))
-            (.flush (.getOutputStream proc))
-            (.close (.getOutputStream proc)))
+            (with-open [stdin (.getOutputStream proc)]
+              (io/copy is stdin)))
         out (.getInputStream proc)
         err (.getErrorStream proc)]
     {:out out
@@ -124,15 +121,16 @@
                      ["--user" basic-auth])
         header-file (.getPath ^File (:header-file opts))
         stream? (identical? :stream (:as opts))]
-    (conj (reduce into ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
-                  [method headers accept-header data-raw in-file in-stream basic-auth
-                   form-params
-                   ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
-                   (when stream? ["-N"])
-                   (:raw-args opts)])
-          (str url
-               (when query-params
-                 (str "?" query-params))))))
+    [(conj (reduce into ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
+                   [method headers accept-header data-raw in-file in-stream basic-auth
+                    form-params
+                    ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
+                    (when stream? ["-N"])
+                    (:raw-args opts)])
+           (str url
+                (when query-params
+                  (str "?" query-params))))
+     opts]))
 
 ;;;; End utils
 
@@ -191,7 +189,7 @@
 (defn request [opts]
   (let [header-file (File/createTempFile "babashka.curl" ".headers")
         opts (assoc opts :header-file header-file)
-        args (curl-command opts)
+        [args opts] (curl-command opts)
         response (let [response (-> (exec-curl args opts)
                                     (curl-response->map))]
                    (.delete header-file)
