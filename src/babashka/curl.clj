@@ -192,21 +192,23 @@
   #{200 201 202 203 204 205 206 207 300 301 302 303 304 307})
 
 (defn- should-throw? [response opts]
-  (let [exceptional-status? (not (unexceptional-status? (:status response)))
-        nonzero-exit? (not (zero? (:exit response)))]
-    (and (:throw opts)
-         (or exceptional-status? nonzero-exit?))))
+  (and (:throw opts)
+       ;; when streaming, we don't know the exit code yet, so it's too early
+       ;; to say if we should throw
+       (or (not (unexceptional-status? (:status response)))
+           (and (not (identical? :stream (:as opts)))
+                (not (zero? (:exit response)))))))
 
 (defn- build-ex-msg [response]
   (cond
     (:status response)
-    (str "status " (:status response))
+    (str "babashka.curl: status " (:status response))
 
     (not (str/blank? (:err response)))
     (:err response)
 
     :else
-    "error"))
+    "babashka.curl: error"))
 
 (defn request [opts]
   (let [header-file (File/createTempFile "babashka.curl" ".headers")
@@ -220,11 +222,10 @@
                    response)
         response (if (:debug opts)
                    (assoc response
-                     :command args
-                     :options opts)
-                   response)
-        stream? (identical? :stream (:as opts))]
-    (if (and (not stream?) (should-throw? response opts))
+                          :command args
+                          :options opts)
+                   response)]
+    (if (should-throw? response opts)
       (throw (ex-info (build-ex-msg response) response))
       response)))
 

@@ -207,15 +207,16 @@
           response (ex-data ex)]
       (is (= 404 (:status response)))
       (is (zero? (:exit response)))))
-  (testing "should not throw"
-    (let [response (curl/get "https://httpstat.us/404" {:throw false})]
-      (is (= 404 (:status response)))
-      (is (zero? (:exit response)))))
-  (testing "should not throw when streaming"
-    (let [response (curl/get "https://httpstat.us/404" {:throw true
-                                                        :as :stream})]
+  (testing "should throw when streaming based on status code"
+    (let [ex (is (thrown? ExceptionInfo (curl/get "https://httpstat.us/404" {:throw true
+                                                                             :as :stream})))
+          response (ex-data ex)]
       (is (= 404 (:status response)))
       (is (= "404 Not Found" (slurp (:body response))))
       (is (= "" (slurp (:err response))))
       (is (delay? (:exit response)))
-      (is (zero? @(:exit response))))))
+      (is (zero? @(:exit response)))))
+  (testing "should not throw"
+    (let [response (curl/get "https://httpstat.us/404" {:throw false})]
+      (is (= 404 (:status response)))
+      (is (zero? (:exit response))))))
