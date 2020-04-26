@@ -126,9 +126,8 @@ Download a binary file as a stream:
 Passing raw arguments to `curl` can be done with `:raw-args`:
 
 ``` clojure
-(:status (curl/get "http://www.clojure.org" {:raw-args ["--max-redirs" "0"]}))
-curl: (47) Maximum (0) redirects followed
-301
+(:status (curl/get "http://www.clojure.org" {:raw-args ["--max-redirs" "0"] :throw false}))
+;;=> 301
 ```
 
 ### Unix sockets
@@ -170,12 +169,42 @@ Using the low-level API for fine grained(and safer) URL construction:
  :url "https://httpbin.org/get?q=test"}
 ```
 
+### Exceptions
+
+An `ExceptionInfo` will be thrown for all HTTP response status codes other than `#{200 201 202 203 204 205 206 207 300 301 302 303 304 307}`
+or if `curl` exited with a non-zero exit code. The response map is the exception data.
+
+```clojure
+(curl/get "https://httpstat.us/404")
+;;=> Execution error (ExceptionInfo) at babashka.curl/request (curl.clj:228).
+;;=> status 404
+
+(:status (ex-data *e))
+;;=> 404
+```
+
+To opt out of an exception being thrown, set `:throw` to false.
+
+```clojure
+(:status (curl/get "https://httpstat.us/404" {:throw false}))
+;;=> 404
+```
+
+If the body is being returned as a stream then exceptions are never thrown and the `:exit` value is wrapped in a `Delay`.
+
+```clojure
+(:exit (curl/get "https://httpstat.us/404" {:as :stream}))
+;;=> #object[clojure.lang.Delay 0x75769ab0 {:status :pending, :val nil}]
+(force *1)
+;;=> 0
+```
+
 ### Error output
 
 Error output can be found under the `:err` key:
 
 ``` clojure
-(:err (curl/get "httpx://postman-echo.com/get"))
+(:err (curl/get "httpx://postman-echo.com/get" {:throw false}))
 ;;=> "curl: (1) Protocol \"httpx\" not supported or disabled in libcurl\n"
 ```
 
