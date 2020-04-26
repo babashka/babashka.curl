@@ -163,9 +163,10 @@
         is (read-then-unread is)
         err (:err opts)
         stream? (identical? :stream (:as opts))
-        [body err] (if stream?
-                     [is err]
-                     [(slurp is) (slurp err)])
+        process (:proc opts)
+        [body err exit] (if stream?
+                          [is err (delay (.waitFor ^java.lang.Process process))]
+                          [(slurp is) (slurp err) (.waitFor ^java.lang.Process process)])
         headers (read-headers (:header-file opts))
         [status headers]
         (reduce (fn [[status parsed-headers :as acc] header-line]
@@ -181,23 +182,50 @@
                   :headers headers
                   :body body
                   :err err
-                  :process (:proc opts)}]
+                  :process process
+                  :exit exit}]
     response))
 
 ;;;; End Response Parsing
 
+(def unexceptional-status?
+  #{200 201 202 203 204 205 206 207 300 301 302 303 304 307})
+
+(defn- should-throw? [response opts]
+  (let [exceptional-status? (not (unexceptional-status? (:status response)))
+        nonzero-exit? (not (zero? (:exit response)))]
+    (and (:throw opts)
+         (or exceptional-status? nonzero-exit?))))
+
+(defn- build-ex-msg [response]
+  (cond
+    (:status response)
+    (str "status " (:status response))
+
+    (not (str/blank? (:err response)))
+    (:err response)
+
+    :else
+    "error"))
+
 (defn request [opts]
   (let [header-file (File/createTempFile "babashka.curl" ".headers")
         opts (assoc opts :header-file header-file)
+        default-opts {:throw true}
+        opts (merge default-opts opts)
         [args opts] (curl-command opts)
         response (let [response (-> (exec-curl args opts)
                                     (curl-response->map))]
                    (.delete header-file)
-                   response)]
-    (if (:debug opts)
-      (assoc response
-             :command args
-             :options opts)
+                   response)
+        response (if (:debug opts)
+                   (assoc response
+                     :command args
+                     :options opts)
+                   response)
+        stream? (identical? :stream (:as opts))]
+    (if (and (not stream?) (should-throw? response opts))
+      (throw (ex-info (build-ex-msg response) response))
       response)))
 
 (defn head
