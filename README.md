@@ -177,7 +177,7 @@ or if `curl` exited with a non-zero exit code. The response map is the exception
 ```clojure
 (curl/get "https://httpstat.us/404")
 ;;=> Execution error (ExceptionInfo) at babashka.curl/request (curl.clj:228).
-;;=> status 404
+     status 404
 
 (:status (ex-data *e))
 ;;=> 404
