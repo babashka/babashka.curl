@@ -26,6 +26,9 @@
                (json/parse-string true)
                :args)))))
 
+(deftest delete-test
+  (is (= 200 (:status (curl/delete "https://postman-echo.com/delete")))))
+
 (deftest head-test
   (is (= 200 (:status (curl/head "https://postman-echo.com/head")))))
 
