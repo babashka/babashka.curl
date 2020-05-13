@@ -229,6 +229,13 @@
       (throw (ex-info (build-ex-msg response) response))
       response)))
 
+(defn delete
+  ([url] (delete url nil))
+  ([url opts]
+   (let [opts (assoc opts :url url
+                     :method :delete)]
+     (request opts))))
+
 (defn head
   ([url] (head url nil))
   ([url opts]
