@@ -10,6 +10,10 @@
 
 ;;;; Utils
 
+(def windows? (-> (System/getProperty "os.name")
+                  (str/lower-case)
+                  (str/includes? "win")))
+
 (defn- shell-command
   "Executes shell command.
   Accepts the following options:
@@ -19,7 +23,10 @@
   `:throw?`: Unless `false`, exits script when the shell-command has a
   non-zero exit code, unless `throw?` is set to false."
   [args opts]
-  (let [pb (ProcessBuilder. ^java.util.List args)
+  (let [args (if windows?
+               (mapv #(str/replace % "\"" "\\\"") args)
+               args)
+        pb (ProcessBuilder. ^java.util.List args)
         proc (.start pb)
         _ (when-let [is (:in-stream opts)]
             (with-open [stdin (.getOutputStream proc)]

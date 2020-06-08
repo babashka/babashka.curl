@@ -44,6 +44,14 @@
          (:body (curl/post "https://postman-echo.com/post"
                            {:body (io/file "README.md")}))
          "babashka.curl")))
+  (testing "JSON body"
+    (let [response (curl/post "https://postman-echo.com/post"
+                              {:headers {"Content-Type" "application/json"}
+                               :body (json/generate-string {:a "foo"})})
+          body (:body response)
+          body (json/parse-string body true)
+          json (:json body)]
+      (is (= {:a "foo"} json))))
   (testing "stream body"
     (is (str/includes?
          (:body (curl/post "https://postman-echo.com/post"
