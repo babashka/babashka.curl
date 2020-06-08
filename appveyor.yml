@@ -45,5 +45,6 @@ clone_script:
 
     powershell -Command "expand-archive -path 'deps.zip' -destination ."
 
+build_script:
 - cmd: >-
     call deps.exe -A:test
