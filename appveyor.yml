@@ -43,7 +43,7 @@ clone_script:
 - cmd: >-
     powershell -Command "(New-Object Net.WebClient).DownloadFile('https://github.com/borkdude/deps.clj/releases/download/v0.0.9/deps.clj-0.0.9-windows-amd64.zip', 'deps.zip')"
 
-    powershell -Command "expand-archive -path 'deps.zip'"
+    powershell -Command "expand-archive -path 'deps.zip' -destination ."
 
     dir
 
