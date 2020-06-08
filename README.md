@@ -8,15 +8,6 @@ This library is part of [babashka](https://github.com/borkdude/babashka/)
 but can also be used with JVM Clojure. Check `CHANGES.md` before
 upgrading as the API may still undergo some changes. Contributions welcome.
 
-## Windows
-
-If you are seeing `The system cannot find the path specified` when executing a
-request with `babashka.curl` in Windows, try creating the directory
-`C:\Temp`. The reason for this is that `babashka.curl` parses headers via a
-temporary file produced by `curl`. In GraalVM 19.3.1 on Windows, the temporary
-directory is hard-coded to `C:\Temp`. This will be fixed in a future version of
-GraalVM.
-
 ## Usage
 
 ``` clojure
