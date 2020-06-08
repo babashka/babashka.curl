@@ -48,11 +48,9 @@
     (let [response (curl/post "https://postman-echo.com/post"
                               {:headers {"Content-Type" "application/json"}
                                :body (json/generate-string {:a "foo"})})
-          status (:status response)
           body (:body response)
           body (json/parse-string body true)
           json (:json body)]
-      (is (= 200 status))
       (is (= {:a "foo"} json))))
   (testing "stream body"
     (is (str/includes?
