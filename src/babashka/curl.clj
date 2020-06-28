@@ -15,13 +15,6 @@
                   (str/includes? "win")))
 
 (defn- shell-command
-  "Executes shell command.
-  Accepts the following options:
-  `:input`: instead of reading from stdin, read from this string.
-  `:to-string?`: instead of writing to stdout, write to a string and
-  return it.
-  `:throw?`: Unless `false`, exits script when the shell-command has a
-  non-zero exit code, unless `throw?` is set to false."
   [args opts]
   (let [args (if windows?
                (mapv #(str/replace % "\"" "\\\"") args)
