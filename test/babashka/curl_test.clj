@@ -98,20 +98,22 @@
       (is (instance? java.io.InputStream (:body response)))
       (is (= "200 OK" (slurp (:body response))))))
 
-  (testing "response object with following redirect"
-    (let [response (curl/get "https://httpbin.org/redirect-to?url=https://www.httpbin.org")]
-      (is (map? response))
-      (is (= 200 (:status response)))))
+  (comment
+    ;; disabled because of https://github.com/postmanlabs/httpbin/issues/617
+    (testing "response object with following redirect"
+      (let [response (curl/get "https://httpbin.org/redirect-to?url=https://www.httpbin.org")]
+        (is (map? response))
+        (is (= 200 (:status response)))))
 
-  (testing "response object without fully following redirects"
-    (let [response (curl/get "https://httpbin.org/redirect-to?url=https://www.httpbin.org"
-                             {:raw-args ["--max-redirs" "0"]
-                              :throw false})]
-      (is (map? response))
-      (is (= 302 (:status response)))
-      (is (= "" (:body response)))
-      (is (= "https://www.httpbin.org" (get-in response [:headers "location"])))
-      (is (empty? (:redirects response))))))
+    (testing "response object without fully following redirects"
+      (let [response (curl/get "https://httpbin.org/redirect-to?url=https://www.httpbin.org"
+                               {:raw-args ["--max-redirs" "0"]
+                                :throw false})]
+        (is (map? response))
+        (is (= 302 (:status response)))
+        (is (= "" (:body response)))
+        (is (= "https://www.httpbin.org" (get-in response [:headers "location"])))
+        (is (empty? (:redirects response)))))))
 
 (deftest accept-header-test
   (is (= 200
