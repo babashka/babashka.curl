@@ -1,5 +1,4 @@
-{:deps {}
- :aliases {:json {:extra-deps {cheshire {:mvn/version "5.10.0"}}}
+{:aliases {:json {:extra-deps {cheshire {:mvn/version "5.10.0"}}}
            :test {:extra-paths ["test"]
                   :extra-deps {cheshire {:mvn/version "5.10.0"}
                                test-runner
