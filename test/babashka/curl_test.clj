@@ -89,7 +89,7 @@
     (is (map? response))
     (is (= 200 (:status response)))
     (is (= "200 OK" (:body response)))
-    (is (= "Microsoft-IIS/10.0" (get-in response [:headers "server"]))))
+    (is (string? (get-in response [:headers "server"]))))
 
   (testing "response object as stream"
     (let [response (curl/get "https://httpstat.us/200" {:as :stream})]
