@@ -77,15 +77,30 @@
                       (recur (reduce conj! headers* ["-H" (str k ": " v)]) (next kvs)))
                     (persistent! headers*)))
         accept-header (accept-header opts)
-        form-params (:form-params opts)
-        form-params (loop [params* (transient [])
-                           kvs (seq form-params)]
-                      (if kvs
-                        (let [[k v] (first kvs)
-                              v (if (file? v) (str "@" (.getPath ^File v)) v)
-                              param ["--form" (str k "=" v)]]
-                          (recur (reduce conj! params* param) (next kvs)))
-                        (persistent! params*)))
+        form-params (when-let [form-params (:form-params opts)]
+                      (loop [params* (transient [])
+                             kvs (seq form-params)]
+                        (if kvs
+                          (let [[k v] (first kvs)
+                                v (if (file? v) (str "@" (.getPath ^File v)) v)
+                                param ["--data" (str (url-encode k) "=" (url-encode v))]]
+                            (recur (reduce conj! params* param) (next kvs)))
+                          (persistent! params*))))
+        ;; TODO:
+        ;; multipart-params (when-let [multipart (:multipart opts)]
+        ;;                    (loop [params* (transient [])
+        ;;                           xs (seq multipart)]
+        ;;                      (if xs
+        ;;                        (let [x (first xs)
+        ;;                              [k v] (if (vector? x)
+        ;;                                      x
+        ;;                                      [(or (:part-name x)
+        ;;                                           (:name x))
+        ;;                                       (:content x)])
+        ;;                              v (if (file? v) (str "@" (.getPath ^File v)) v)
+        ;;                              param ["--form" (str k "=" v)]]
+        ;;                          (recur (reduce conj! params* param) (next xs)))
+        ;;                        (persistent! params*))))
         query-params (when-let [qp (:query-params opts)]
                        (loop [params* (transient [])
                               kvs (seq qp)]
@@ -123,7 +138,7 @@
         stream? (identical? :stream (:as opts))]
     [(conj (reduce into ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
                    [method headers accept-header data-raw in-file in-stream basic-auth
-                    form-params
+                    form-params #_multipart-params
                     ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
                     (when stream? ["-N"])
                     (:raw-args opts)])

@@ -59,18 +59,29 @@
          "babashka.curl")))
   (testing "form-params"
     (let [body (:body (curl/post "https://postman-echo.com/post"
-                                 {:form-params {"name" "Michiel Borkent"}}))]
-      (is (str/includes? body "Michiel Borkent"))
-      (is (str/starts-with? body "{")))
-    (testing "form-params from file"
+                                 {:form-params {"name" "Michiel Borkent"}}))
+          body (json/parse-string body true)
+          headers (:headers body)
+          content-type (:content-type headers)]
+      (is (= "application/x-www-form-urlencoded" content-type))))
+  ;; TODO:
+  #_(testing "multipart"
+    (testing "posting file"
       (let [tmp-file (java.io.File/createTempFile "foo" "bar")
             _ (spit tmp-file "Michiel Borkent")
             _ (.deleteOnExit tmp-file)
             body (:body (curl/post "https://postman-echo.com/post"
-                                   {:form-params {"file" (io/file tmp-file)
-                                                  "filename" (.getPath tmp-file)}}))]
-        (is (str/includes? body "foo"))
-        (is (str/starts-with? body "{"))))))
+                                   {:multipart [{:name "file"
+                                                 :content (io/file tmp-file)}
+                                                {:name "filename" :content (.getPath tmp-file)}
+                                                ["file2" (io/file tmp-file)]]}))
+            body (json/parse-string body true)
+            headers (:headers body)
+            content-type (:content-type headers)]
+        (is (str/starts-with? content-type "multipart/form-data"))
+        (is (:files body))
+        (is (str/includes? (-> body :form :filename) "foo"))
+        (prn body)))))
 
 (deftest patch-test
   (is (str/includes?
