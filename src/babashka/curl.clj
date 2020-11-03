@@ -203,16 +203,18 @@
 
 ;;;; End Response Parsing
 
-(def unexceptional-status?
+(def unexceptional-statuses
   #{200 201 202 203 204 205 206 207 300 301 302 303 304 307})
 
 (defn- should-throw? [response opts]
   (and (:throw opts)
        ;; when streaming, we don't know the exit code yet, so it's too early
        ;; to say if we should throw
-       (or (not (unexceptional-status? (:status response)))
-           (and (not (identical? :stream (:as opts)))
-                (not (zero? (:exit response)))))))
+       (or (and (not (identical? :stream (:as opts)))
+                (not (zero? (:exit response))))
+           (let [status (:status response)]
+             (and status
+                  (not (contains? unexceptional-statuses status)))))))
 
 (defn- build-ex-msg [response]
   (cond
