@@ -199,6 +199,11 @@ Error output can be found under the `:err` key:
 ;;=> "curl: (1) Protocol \"httpx\" not supported or disabled in libcurl\n"
 ```
 
+### Compression
+
+From babashka 0.2.4 onwards, this library will call `curl` with `--compressed`
+by default. To opt out, pass `:compressed false` in the options.
+
 ### Debugging requests
 
 Set `:debug` to `true` to get debugging information along with the response. The

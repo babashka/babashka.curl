@@ -244,3 +244,14 @@
     (let [response (curl/get "https://httpstat.us/404" {:throw false})]
       (is (= 404 (:status response)))
       (is (zero? (:exit response))))))
+
+(deftest compressed-test
+  (is (-> (curl/get "https://api.stackexchange.com/2.2/sites")
+          :body (json/parse-string true) :items))
+  (is (thrown?
+       Exception
+       ;; the stackexchange API ALWAYS returns a gzipped response but we ask
+       ;; curl to not decompress it
+       (-> (curl/get "https://api.stackexchange.com/2.2/sites"
+                     {:compressed false})
+           :body (json/parse-string true) :items))))

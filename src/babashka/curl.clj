@@ -8,16 +8,21 @@
 
 (set! *warn-on-reflection* true)
 
-;;;; Utils
-
 (def windows? (-> (System/getProperty "os.name")
                   (str/lower-case)
                   (str/includes? "win")))
 
+(def ^:dynamic *defaults*
+  {:escape (if windows? #(str/replace % "\"" "\\\"") identity)
+   :compressed true
+   :throw true})
+
+;;;; Utils
+
 (defn- shell-command
   [args opts]
   (let [args (if windows?
-               (mapv #(str/replace % "\"" "\\\"") args)
+               (mapv (:escape opts) args)
                args)
         pb (ProcessBuilder. ^java.util.List args)
         proc (.start pb)
@@ -136,11 +141,12 @@
                      ["--user" basic-auth])
         header-file (.getPath ^File (:header-file opts))
         stream? (identical? :stream (:as opts))]
-    [(conj (reduce into ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
+    [(conj (reduce into (cond-> ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
+                          (not (false? (:compressed opts))) (conj "--compressed")
+                          ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
+                          stream? (conj "-N"))
                    [method headers accept-header data-raw in-file in-stream basic-auth
                     form-params #_multipart-params
-                    ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
-                    (when stream? ["-N"])
                     (:raw-args opts)])
            (str url
                 (when query-params
@@ -230,7 +236,7 @@
 (defn request [opts]
   (let [header-file (File/createTempFile "babashka.curl" ".headers")
         opts (assoc opts :header-file header-file)
-        default-opts {:throw true}
+        default-opts *defaults*
         opts (merge default-opts opts)
         [args opts] (curl-command opts)
         response (let [response (-> (exec-curl args opts)
