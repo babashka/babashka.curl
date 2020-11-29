@@ -16,7 +16,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "project.clj" }}
+            - v1-dependencies-{{ checksum "deps.edn" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
       - run:
@@ -29,6 +29,10 @@ jobs:
           name: Run JVM tests
           command: |
             script/test
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "deps.edn" }}
   java-11:
     docker:
       # specify the version you desire here
@@ -41,7 +45,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "project.clj" }}
+            - v1-dependencies-{{ checksum "deps.edn" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
       - run:
@@ -54,6 +58,10 @@ jobs:
           name: Run JVM tests
           command: |
             script/test
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "deps.edn" }}
   deploy:
     resource_class: large
     docker:
@@ -65,14 +73,14 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "project.clj" }}
+          - v1-dependencies-{{ checksum "deps.edn" }}
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
       - run: .circleci/script/deploy
       - save_cache:
           paths:
             - ~/.m2
-          key: v1-dependencies-{{ checksum "project.clj" }}
+          key: v1-dependencies-{{ checksum "deps.edn" }}
 
 workflows:
   version: 2
