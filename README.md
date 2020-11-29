@@ -79,19 +79,6 @@ Posting form params:
 ;; => 200
 ```
 
-Post a file as `multipart/form-data`:
-
-``` clojure
-(->
-  (curl/post "https://postman-echo.com/post"
-    {:form-params {"filename" "somefile" "file" (io/file "README.md")}})
-  :body
-  (json/parse-string)
-  (get "files")
-  (contains? "README.md"))
-;; => true
-```
-
 ### Basic auth
 
 Basic auth:

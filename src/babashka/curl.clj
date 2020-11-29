@@ -87,8 +87,10 @@
                              kvs (seq form-params)]
                         (if kvs
                           (let [[k v] (first kvs)
-                                v (if (file? v) (str "@" (.getPath ^File v)) v)
-                                param ["--data" (str (url-encode k) "=" (url-encode v))]]
+                                v (url-encode v)#_(if (file? v)
+                                                    (str "@" (.getPath ^File v))
+                                                    (url-encode v))
+                                param ["--data" (str (url-encode k) "=" v)]]
                             (recur (reduce conj! params* param) (next kvs)))
                           (persistent! params*))))
         ;; TODO:
