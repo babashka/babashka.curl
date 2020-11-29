@@ -7,7 +7,7 @@ jobs:
   java-8:
     docker:
       # specify the version you desire here
-      - image: circleci/clojure:openjdk-8-lein
+      - image: circleci/clojure:openjdk-8-lein-buster
     working_directory: ~/repo
     environment:
       LEIN_ROOT: "true"
@@ -36,7 +36,7 @@ jobs:
   java-11:
     docker:
       # specify the version you desire here
-      - image: circleci/clojure:openjdk-11-lein
+      - image: circleci/clojure:openjdk-11-lein-buster
     working_directory: ~/repo
     environment:
       LEIN_ROOT: "true"
@@ -65,7 +65,7 @@ jobs:
   deploy:
     resource_class: large
     docker:
-      - image: circleci/clojure:openjdk-8-lein
+      - image: circleci/clojure:openjdk-8-lein-buster
     working_directory: ~/repo
     environment:
       LEIN_ROOT: "true"
