@@ -1,5 +1,7 @@
 # babashka.curl
 
+[![Clojars Project](https://img.shields.io/clojars/v/babashka/babashka.curl.svg)](https://clojars.org/babashka/babashka.curl)
+
 A tiny [curl](https://curl.haxx.se/) wrapper via idiomatic Clojure, inspired by [clj-http](https://github.com/dakrone/clj-http#philosophy), [Ring](https://github.com/ring-clojure/ring) and friends.
 
 ## Status
