@@ -3,5 +3,5 @@
                   :extra-deps {cheshire./cheshire {:mvn/version "5.10.0"}
                                cognitect-labs/test-runner
                                {:git/url "https://github.com/cognitect-labs/test-runner"
-                                :sha "cb96e80f6f3d3b307c59cbeb49bb0dcb3a2a780b"}}
+                                :sha "b6b3193fcc42659d7e46ecd1884a228993441182"}}
                   :main-opts ["-m" "cognitect.test-runner"]}}}
