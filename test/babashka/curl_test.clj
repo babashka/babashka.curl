@@ -156,14 +156,14 @@
   (testing "download image"
     (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
       (.deleteOnExit tmp-file)
-      (io/copy (:body (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream}))
+      (io/copy (:body (curl/get "https://github.com/babashka/babashka/raw/master/logo/icon.png" {:as :stream}))
                tmp-file)
       (is (= (.length (io/file "test" "icon.png"))
              (.length tmp-file)))))
   (testing "download image with response headers"
     (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
       (.deleteOnExit tmp-file)
-      (let [resp (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png" {:as :stream})]
+      (let [resp (curl/get "https://github.com/babashka/babashka/raw/master/logo/icon.png" {:as :stream})]
         (is (= 200 (:status resp)))
         (io/copy (:body resp) tmp-file))
       (is (= (.length (io/file "test" "icon.png"))

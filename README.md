@@ -6,7 +6,7 @@ A tiny [curl](https://curl.haxx.se/) wrapper via idiomatic Clojure, inspired by 
 
 ## Status
 
-This library is part of [babashka](https://github.com/borkdude/babashka/)
+This library is part of [babashka](https://github.com/babashka/babashka/)
 but can also be used with JVM Clojure. Check `CHANGES.md` before
 upgrading as the API may still undergo some changes. Contributions welcome.
 
@@ -94,7 +94,7 @@ Download a binary file as a stream:
 
 ``` clojure
 (io/copy
-  (:body (curl/get "https://github.com/borkdude/babashka/raw/master/logo/icon.png"
+  (:body (curl/get "https://github.com/babashka/babashka/raw/master/logo/icon.png"
     {:as :stream}))
   (io/file "icon.png"))
 (.length (io/file "icon.png"))
@@ -122,7 +122,7 @@ Talking to a UNIX socket:
     (json/parse-string true)
     first
     :RepoTags)
-;;=> ["borkdude/babashka:0.0.79-SNAPSHOT"]
+;;=> ["babashka/babashka:0.0.79-SNAPSHOT"]
 ```
 
 ### URL construction
