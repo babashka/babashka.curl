@@ -74,13 +74,7 @@
                  (case method
                    :head ["--head"]
                    ["--request" (-> method name str/upper-case)]))
-        headers (:headers opts)
-        headers (loop [headers* (transient [])
-                       kvs (seq headers)]
-                  (if kvs
-                    (let [[k v] (first kvs)]
-                      (recur (reduce conj! headers* ["-H" (str k ": " v)]) (next kvs)))
-                    (persistent! headers*)))
+        headers (into [] (mapcat (fn [[k v]] ["-H" (str (name k) ": " v)])) (:headers opts))
         accept-header (accept-header opts)
         form-params (when-let [form-params (:form-params opts)]
                       (loop [params* (transient [])

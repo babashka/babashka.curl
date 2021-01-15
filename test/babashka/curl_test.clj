@@ -255,3 +255,11 @@
        (-> (curl/get "https://api.stackexchange.com/2.2/sites"
                      {:compressed false})
            :body (json/parse-string true) :items))))
+
+(deftest header-with-keyword-key-test
+  (is (= 200
+         (-> (curl/get "https://httpstat.us/200"
+                       {:headers {:accept "application/json"}})
+             :body
+             (json/parse-string true)
+             :code))))
