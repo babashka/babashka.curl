@@ -193,6 +193,21 @@ Error output can be found under the `:err` key:
 From babashka 0.2.4 onwards, this library will call `curl` with `--compressed`
 by default. To opt out, pass `:compressed false` in the options.
 
+### Download multiple files
+
+It's possible to [download multiple files](https://everything.curl.dev/usingcurl/downloads#multiple-downloads) at once (even if curl exits with a [status code of 3](https://everything.curl.dev/usingcurl/returns#available-exit-codes)).
+
+```clojure
+(let [urls ["http://ipv4.download.thinkbroadband.com/5MB.zip"
+            "http://ipv4.download.thinkbroadband.com/10MB.zip"]
+      raw-args (->> (map #(conj ["-O"] %) urls)
+                    (flatten))
+      resp (curl/get nil {:raw-args raw-args
+                          :throw false})]
+  (:err resp))
+;; => curl: (3) URL using bad/illegal format or missing URL\n
+```
+
 ### Debugging requests
 
 Set `:debug` to `true` to get debugging information along with the response. The
