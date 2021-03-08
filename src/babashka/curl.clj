@@ -94,7 +94,7 @@
                            (str/join "&" (persistent! params*)))))
         data-raw (:data-raw opts)
         data-raw (when data-raw
-                   ["--data-binary" data-raw])
+                   ["--data-raw" data-raw])
         url (let [url* (:url opts)]
               (cond
                 (string? url*)
