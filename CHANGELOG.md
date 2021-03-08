@@ -1,6 +1,6 @@
 # Changes
 
-## 0.0.2
+## 0.0.3
 
 - [#35](https://github.com/babashka/babashka.curl/issues/35): use
   `--data-binary` when sending files or streams
