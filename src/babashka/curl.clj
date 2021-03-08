@@ -81,27 +81,10 @@
                              kvs (seq form-params)]
                         (if kvs
                           (let [[k v] (first kvs)
-                                v (url-encode v)#_(if (file? v)
-                                                    (str "@" (.getPath ^File v))
-                                                    (url-encode v))
+                                v (url-encode v)
                                 param ["--data" (str (url-encode k) "=" v)]]
                             (recur (reduce conj! params* param) (next kvs)))
                           (persistent! params*))))
-        ;; TODO:
-        ;; multipart-params (when-let [multipart (:multipart opts)]
-        ;;                    (loop [params* (transient [])
-        ;;                           xs (seq multipart)]
-        ;;                      (if xs
-        ;;                        (let [x (first xs)
-        ;;                              [k v] (if (vector? x)
-        ;;                                      x
-        ;;                                      [(or (:part-name x)
-        ;;                                           (:name x))
-        ;;                                       (:content x)])
-        ;;                              v (if (file? v) (str "@" (.getPath ^File v)) v)
-        ;;                              param ["--form" (str k "=" v)]]
-        ;;                          (recur (reduce conj! params* param) (next xs)))
-        ;;                        (persistent! params*))))
         query-params (when-let [qp (:query-params opts)]
                        (loop [params* (transient [])
                               kvs (seq qp)]
@@ -111,7 +94,7 @@
                            (str/join "&" (persistent! params*)))))
         data-raw (:data-raw opts)
         data-raw (when data-raw
-                   ["--data-raw" data-raw])
+                   ["--data-binary" data-raw])
         url (let [url* (:url opts)]
               (cond
                 (string? url*)
@@ -126,9 +109,9 @@
                            ^String (:query url*)
                            ^String (:fragment url*)))))
         in-file (:in-file opts)
-        in-file (when in-file ["-d" (str "@" (.getCanonicalPath ^java.io.File in-file))])
+        in-file (when in-file ["--data-binary" (str "@" (.getCanonicalPath ^java.io.File in-file))])
         in-stream (:in-stream opts)
-        in-stream (when in-stream ["-d" "@-"])
+        in-stream (when in-stream ["--data-binary" "@-"])
         basic-auth (:basic-auth opts)
         basic-auth (if (sequential? basic-auth)
                      (str/join ":" basic-auth)
