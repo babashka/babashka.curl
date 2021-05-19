@@ -248,9 +248,12 @@
                           :command args
                           :options opts)
                    response)]
-    (prn :response response)
     (if (should-throw? response opts)
-      (throw (ex-info (build-ex-msg response) response))
+      (let [err (:err response)]
+        (if (and (string? err) (str/includes? err "--compressed: the installed libcurl version doesn't support this"))
+          (vreset! compressed? false)
+          (request opts))
+        (throw (ex-info (build-ex-msg response) response)))
       response)))
 
 (defn delete
