@@ -57,21 +57,8 @@
   [^String unencoded]
   (URLEncoder/encode unencoded "UTF-8"))
 
-(def compressed?
+(def ^:private compressed?
   (volatile! true))
-
-(defn check-supports-compressed? []
-  (let [v @compressed?]
-    (if (boolean? v)
-      (let [supports? (let [version-output (-> (shell-command ["curl" "--version"] nil)
-                                               :out
-                                               slurp
-                                               )]
-                        (or (str/includes? version-output "libz")
-                            (str/includes? version-output "brotli")))]
-        (vreset! compressed? supports?)
-        supports?)
-      v)))
 
 (defn- curl-command [opts]
   (let [body (:body opts)
@@ -133,10 +120,7 @@
         stream? (identical? :stream (:as opts))
         compressed? (if-let [[_ v] (find opts :compressed)]
                       v
-                      (let [v @compressed?]
-                        (if (false? v)
-                          v
-                          true)))]
+                      @compressed?)]
     [(conj (reduce into (cond-> ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
                           compressed? (conj "--compressed")
                           ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
