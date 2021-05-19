@@ -233,9 +233,9 @@
     :else
     "babashka.curl: error"))
 
-(defn request [opts]
+(defn request [raw-opts]
   (let [header-file (File/createTempFile "babashka.curl" ".headers")
-        opts (assoc opts :header-file header-file)
+        opts (assoc raw-opts :header-file header-file)
         default-opts *defaults*
         opts (merge default-opts opts)
         [args opts] (curl-command opts)
@@ -250,11 +250,13 @@
                    response)]
     (if (should-throw? response opts)
       (let [err (:err response)]
-        (if (and (string? err) (str/includes? err "--compressed: the installed libcurl version doesn't support this"))
+        (if (and (string? err)
+                 (str/includes? err "--compressed: the installed libcurl version doesn't support this")
+                 @compressed?
+                 (not (contains? raw-opts :compressed)))
           (do (vreset! compressed? false)
-              (request opts))
-          (throw (ex-info (build-ex-msg response) response)))
-        (throw (ex-info (build-ex-msg response) response)))
+              (request raw-opts))
+          (throw (ex-info (build-ex-msg response) response))))
       response)))
 
 (defn delete
