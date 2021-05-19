@@ -251,8 +251,9 @@
     (if (should-throw? response opts)
       (let [err (:err response)]
         (if (and (string? err) (str/includes? err "--compressed: the installed libcurl version doesn't support this"))
-          (vreset! compressed? false)
-          (request opts))
+          (do (vreset! compressed? false)
+              (request opts))
+          (throw (ex-info (build-ex-msg response) response)))
         (throw (ex-info (build-ex-msg response) response)))
       response)))
 
