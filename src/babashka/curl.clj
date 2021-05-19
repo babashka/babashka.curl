@@ -231,17 +231,17 @@
                    (assoc response
                           :command args
                           :options opts)
-                   response)]
-    (if (should-throw? response opts)
-      (let [err (:err response)]
-        (if (and (string? err)
-                 (str/includes? err "--compressed: the installed libcurl version doesn't support this")
-                 @compressed?
-                 (not (contains? raw-opts :compressed)))
-          (do (vreset! compressed? false)
-              (request raw-opts))
-          (throw (ex-info (build-ex-msg response) response))))
-      response)))
+                   response)
+        err (:err response)]
+    (if (and (string? err)
+             @compressed?
+             (str/includes? err "--compressed: the installed libcurl version doesn't support this")
+             (not (contains? raw-opts :compressed)))
+      (do (vreset! compressed? false)
+          (request raw-opts))
+      (if (should-throw? response opts)
+        (throw (ex-info (build-ex-msg response) response))
+        response))))
 
 (defn delete
   ([url] (delete url nil))
