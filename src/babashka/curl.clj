@@ -12,11 +12,6 @@
                   (str/lower-case)
                   (str/includes? "win")))
 
-(def ^:dynamic *defaults*
-  {:escape (if windows? #(str/replace % "\"" "\\\"") identity)
-   :compressed true
-   :throw true})
-
 ;;;; Utils
 
 (defn- shell-command
@@ -61,6 +56,22 @@
   "Returns an UTF-8 URL encoded version of the given string."
   [^String unencoded]
   (URLEncoder/encode unencoded "UTF-8"))
+
+(def compressed?
+  (volatile! true))
+
+(defn check-supports-compressed? []
+  (let [v @compressed?]
+    (if (boolean? v)
+      (let [supports? (let [version-output (-> (shell-command ["curl" "--version"] nil)
+                                               :out
+                                               slurp
+                                               )]
+                        (or (str/includes? version-output "libz")
+                            (str/includes? version-output "brotli")))]
+        (vreset! compressed? supports?)
+        supports?)
+      v)))
 
 (defn- curl-command [opts]
   (let [body (:body opts)
@@ -119,9 +130,15 @@
         basic-auth (when basic-auth
                      ["--user" basic-auth])
         header-file (.getPath ^File (:header-file opts))
-        stream? (identical? :stream (:as opts))]
+        stream? (identical? :stream (:as opts))
+        compressed? (if-let [[_ v] (find opts :compressed)]
+                      v
+                      (let [v @compressed?]
+                        (if (false? v)
+                          v
+                          true)))]
     [(conj (reduce into (cond-> ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
-                          (not (false? (:compressed opts))) (conj "--compressed")
+                          compressed? (conj "--compressed")
                           ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
                           stream? (conj "-N"))
                    [method headers accept-header data-raw in-file in-stream basic-auth
@@ -133,6 +150,10 @@
      opts]))
 
 ;;;; End utils
+
+(def ^:dynamic *defaults*
+  {:escape (if windows? #(str/replace % "\"" "\\\"") identity)
+   :throw true})
 
 ;;;; Response Parsing
 
@@ -227,6 +248,7 @@
                           :command args
                           :options opts)
                    response)]
+    (prn :response response)
     (if (should-throw? response opts)
       (throw (ex-info (build-ex-msg response) response))
       response)))
