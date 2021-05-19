@@ -192,8 +192,8 @@ Error output can be found under the `:err` key:
 
 From babashka 0.2.4 onwards, this library will call `curl` with `--compressed`
 by default. To opt out, pass `:compressed false` in the options.  On Windows 10
-the default installed curl does not support this option. You can either upgrade
-curl or perform all requests using `:compressed false`.
+the default installed curl does not support this option. You can either [upgrade
+curl](https://curl.se/windows) or perform all requests using `:compressed false`.
 
 ### Debugging requests
 
