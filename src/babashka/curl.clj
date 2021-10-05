@@ -25,6 +25,8 @@
                (mapv (:escape opts) args)
                args)
         pb (ProcessBuilder. ^java.util.List args)
+        _ (when (identical? :inherit (:err opts))
+            (.redirectError pb java.lang.ProcessBuilder$Redirect/INHERIT))
         proc (.start pb)
         _ (when-let [is (:in-stream opts)]
             (with-open [stdin (.getOutputStream proc)]
@@ -119,11 +121,15 @@
         basic-auth (when basic-auth
                      ["--user" basic-auth])
         header-file (.getPath ^File (:header-file opts))
-        stream? (identical? :stream (:as opts))]
-    [(conj (reduce into (cond-> ["curl" "--silent" "--show-error" "--location" "--dump-header" header-file]
+        stream? (identical? :stream (:as opts))
+        silent? (if-let [[_ v] (find opts :silent)]
+                  v
+                  true)]
+    [(conj (reduce into (cond-> ["curl" "--show-error" "--location" "--dump-header" header-file]
                           (not (false? (:compressed opts))) (conj "--compressed")
                           ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
-                          stream? (conj "-N"))
+                          stream? (conj "-N")
+                          silent? (conj "--silent"))
                    [method headers accept-header data-raw in-file in-stream basic-auth
                     form-params #_multipart-params
                     (:raw-args opts)])
