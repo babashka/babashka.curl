@@ -20,8 +20,8 @@
              (json/parse-string true)
              :code)))
   (testing "query params"
-    (is (= {:foo1 "bar1", :foo2 "bar2"}
-           (-> (curl/get "https://postman-echo.com/get" {:query-params {"foo1" "bar1" "foo2" "bar2"}})
+    (is (= {:foo1 "bar1" :foo2 "bar2" :foo3 "bar3" :not-string "42" :namespaced/key "foo"}
+           (-> (curl/get "https://postman-echo.com/get" {:query-params {"foo1" "bar1" "foo2" "bar2" :foo3 "bar3" :not-string 42 :namespaced/key "foo"}})
                :body
                (json/parse-string true)
                :args)))))
@@ -59,7 +59,9 @@
          "babashka.curl")))
   (testing "form-params"
     (let [body (:body (curl/post "https://postman-echo.com/post"
-                                 {:form-params {"name" "Michiel Borkent"}}))
+                                 {:form-params {"name" "Michiel Borkent"
+                                                :location "NL"
+                                                :this-isnt-a-string 42}}))
           body (json/parse-string body true)
           headers (:headers body)
           content-type (:content-type headers)]
