@@ -64,6 +64,13 @@
   [^String unencoded]
   (URLEncoder/encode unencoded "UTF-8"))
 
+(defn- coerce-key
+  "Coreces a key to str"
+  [k]
+  (if (keyword? k)
+    (-> k str (subs 1))
+    (str k)))
+
 (defn- curl-command [opts]
   (let [body (:body opts)
         opts (if body
@@ -76,7 +83,7 @@
                  (case method
                    :head ["--head"]
                    ["--request" (-> method name str/upper-case)]))
-        headers (into [] (mapcat (fn [[k v]] ["-H" (str (name k) ": " v)])) (:headers opts))
+        headers (into [] (mapcat (fn [[k v]] ["-H" (str (coerce-key k) ": " v)])) (:headers opts))
         accept-header (accept-header opts)
         form-params (when-let [form-params (:form-params opts)]
                       (loop [params* (transient [])
@@ -84,7 +91,7 @@
                         (if kvs
                           (let [[k v] (first kvs)
                                 v (url-encode (str v))
-                                param ["--data" (str (url-encode (name k)) "=" v)]]
+                                param ["--data" (str (url-encode (coerce-key k)) "=" v)]]
                             (recur (reduce conj! params* param) (next kvs)))
                           (persistent! params*))))
         query-params (when-let [qp (:query-params opts)]
@@ -92,7 +99,7 @@
                               kvs (seq qp)]
                          (if kvs
                            (let [[k v] (first kvs)]
-                             (recur (conj! params* (str (url-encode (name k)) "=" (url-encode (str v)))) (next kvs)))
+                             (recur (conj! params* (str (url-encode (coerce-key k)) "=" (url-encode (str v)))) (next kvs)))
                            (str/join "&" (persistent! params*)))))
         data-raw (:data-raw opts)
         data-raw (when data-raw
