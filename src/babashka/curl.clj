@@ -83,8 +83,8 @@
                              kvs (seq form-params)]
                         (if kvs
                           (let [[k v] (first kvs)
-                                v (url-encode v)
-                                param ["--data" (str (url-encode k) "=" v)]]
+                                v (url-encode (str v))
+                                param ["--data" (str (url-encode (name k)) "=" v)]]
                             (recur (reduce conj! params* param) (next kvs)))
                           (persistent! params*))))
         query-params (when-let [qp (:query-params opts)]
@@ -92,7 +92,7 @@
                               kvs (seq qp)]
                          (if kvs
                            (let [[k v] (first kvs)]
-                             (recur (conj! params* (str (url-encode k) "=" (url-encode v))) (next kvs)))
+                             (recur (conj! params* (str (url-encode (name k)) "=" (url-encode (str v)))) (next kvs)))
                            (str/join "&" (persistent! params*)))))
         data-raw (:data-raw opts)
         data-raw (when data-raw

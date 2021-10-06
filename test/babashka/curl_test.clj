@@ -20,8 +20,8 @@
              (json/parse-string true)
              :code)))
   (testing "query params"
-    (is (= {:foo1 "bar1", :foo2 "bar2"}
-           (-> (curl/get "https://postman-echo.com/get" {:query-params {"foo1" "bar1" "foo2" "bar2"}})
+    (is (= {:foo1 "bar1" :foo2 "bar2" :foo3 "bar3" :not-string "42"}
+           (-> (curl/get "https://postman-echo.com/get" {:query-params {"foo1" "bar1" "foo2" "bar2" :foo3 "bar3" :not-string 42}})
                :body
                (json/parse-string true)
                :args)))))
