@@ -187,12 +187,11 @@
                     (println "Content-Type: text/event-stream")
                     (println "Connection: keep-alive")
                     (println)
-                    (loop []
-                      (try (loop []
-                             (println "data: Stream Hello!")
-                             (Thread/sleep 20)
-                             (recur))
-                           (catch Exception _ nil)))))
+                    (try (loop []
+                           (println "data: Stream Hello!")
+                           (Thread/sleep 20)
+                           (recur))
+                         (catch Exception _ nil))))
                  (catch Exception e
                    (prn e))))
     (let [resp (curl/get (str "http://localhost:" port)
@@ -205,7 +204,13 @@
       (is (= "text/event-stream" (get headers "content-type")))
       (is (= (repeat 2 "data: Stream Hello!") (take 2 (line-seq (io/reader body)))))
       (is (= (repeat 10 "data: Stream Hello!") (take 10 (line-seq (io/reader body)))))
-      (.destroy proc))))
+      (.destroy proc)))
+  (testing "retries with stream"
+    (let [body (:body (curl/get "https://httpstat.us/500"
+                                {:as :stream :raw-args ["--retry" "3"]
+                                 :throw false}))]
+      (is (= "500 Internal Server Error500 Internal Server Error500 Internal Server Error500 Internal Server Error"
+             (slurp body))))))
 
 (deftest command-test
   (let [resp (curl/head "https://postman-echo.com/head" {:debug true})
