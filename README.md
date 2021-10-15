@@ -149,6 +149,13 @@ Using the low-level API for fine grained(and safer) URL construction:
  :url "https://httpbin.org/get?q=test"}
 ```
 
+### Redirects
+Redirects are automatically followed. To opt out of this behaviour, set `:follow-redirects` to false.
+
+```clojure
+(curl/get "https://httpstat.us/302" {:follow-redirects false})
+```
+
 ### Exceptions
 
 An `ExceptionInfo` will be thrown for all HTTP response status codes other than `#{200 201 202 203 204 205 206 207 300 301 302 303 304 307}`

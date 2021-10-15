@@ -131,12 +131,14 @@
         stream? (identical? :stream (:as opts))
         silent? (if-let [[_ v] (find opts :silent)]
                   v
-                  true)]
-    [(conj (reduce into (cond-> ["curl" "--show-error" "--location" "--dump-header" header-file]
+                  true)
+        follow-redirects? (:follow-redirects opts true)]
+    [(conj (reduce into (cond-> ["curl" "--show-error" "--dump-header" header-file]
                           (not (false? (:compressed opts))) (conj "--compressed")
                           ;; tested with SSE server, e.g. https://github.com/enkot/SSE-Fake-Server
                           stream? (conj "-N")
-                          silent? (conj "--silent"))
+                          silent? (conj "--silent")
+                          follow-redirects? (conj "--location"))
                    [method headers accept-header data-raw in-file in-stream basic-auth
                     form-params #_multipart-params
                     (:raw-args opts)])
