@@ -270,3 +270,10 @@
              :body
              (json/parse-string true)
              :code))))
+
+(deftest follow-redirects-test
+  (testing "default behaviour of following redirects automatically"
+    (is (= 200 (:status (curl/get "https://httpstat.us/302")))))
+
+  (testing "follow redirects set to false"
+    (is (= 302 (:status (curl/get "https://httpstat.us/302" {:follow-redirects false}))))))
