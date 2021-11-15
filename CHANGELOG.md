@@ -1,5 +1,11 @@
 # Changes
 
+## 0.1.0
+
+-  Add `:silent false` and `:err :inherit` opts
+-  Support keywords as query and form param keys ([@lispyclouds](https://github.com/lispyclouds))
+-  Add `:follow-redirects false` options ([@sudorock](https://github.com/sudorock))
+
 ## 0.0.3
 
 - [#35](https://github.com/babashka/babashka.curl/issues/35): use
