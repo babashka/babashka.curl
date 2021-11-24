@@ -1,4 +1,4 @@
-(defproject babashka/babashka.curl "0.1.0"
+(defproject babashka/babashka.curl "0.1.1"
   :description "Clojure wrapper for curl"
   :url "https://github.com/babashka/babashka.curl"
   :scm {:name "git"
