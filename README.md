@@ -90,16 +90,27 @@ Basic auth:
 
 ### Download binary
 
-Download a binary file as a stream:
+Download a binary file:
 
 ``` clojure
 (io/copy
   (:body (curl/get "https://github.com/babashka/babashka/raw/master/logo/icon.png"
-    {:as :stream}))
+    {:as :bytes}))
   (io/file "icon.png"))
 (.length (io/file "icon.png"))
 ;;=> 7748
 ```
+
+### Streaming
+
+With `:as :stream`
+
+``` clojure
+(:body (curl/get "https://github.com/babashka/babashka/raw/master/logo/icon.png"
+    {:as :stream}))
+```
+
+will return the raw input stream.
 
 ### Passing through arguments
 
