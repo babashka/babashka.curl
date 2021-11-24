@@ -169,6 +169,12 @@
           (ByteArrayInputStream.)
           (SequenceInputStream. is)))))
 
+(defn- stream-to-bytes
+  [in]
+  (with-open [bout (java.io.ByteArrayOutputStream.)]
+    (io/copy in bout)
+    (.toByteArray bout)))
+
 (defn- curl-response->map
   "Parses a curl response input stream into a map"
   [opts]
@@ -177,11 +183,15 @@
         ;; This ensures :status and :headers are parsed when option `:as :stream` is set.
         is (read-then-unread is)
         err (:err opts)
-        stream? (identical? :stream (:as opts))
+        as (:as opts)
+        stream? (identical? :stream as)
+        bytes? (identical? :bytes as)
         process (:proc opts)
         [body err exit] (if stream?
                           [is err (delay (.waitFor ^java.lang.Process process))]
-                          [(slurp is) (slurp err) (.waitFor ^java.lang.Process process)])
+                          [(if bytes?
+                             (stream-to-bytes is)
+                             (slurp is)) (slurp err) (.waitFor ^java.lang.Process process)])
         headers (read-headers (:header-file opts))
         [status headers]
         (reduce (fn [[status parsed-headers :as acc] header-line]

@@ -169,7 +169,17 @@
         (is (= 200 (:status resp)))
         (io/copy (:body resp) tmp-file))
       (is (= (.length (io/file "test" "icon.png"))
-             (.length tmp-file))))))
+             (.length tmp-file)))))
+  (testing "direct bytes response"
+    (let [tmp-file (java.io.File/createTempFile "icon" ".png")]
+      (.deleteOnExit tmp-file)
+      (let [resp (curl/get "https://github.com/babashka/babashka/raw/master/logo/icon.png" {:as :bytes})]
+        (is (= 200 (:status resp)))
+        (is (= (Class/forName "[B") (class (:body resp))))
+        (io/copy (:body resp) tmp-file)
+        (is (= (count (:body resp))
+               (.length (io/file "test" "icon.png"))
+               (.length tmp-file)))))))
 
 (deftest stream-test
   ;; This test aims to test what is tested manually as follows:
