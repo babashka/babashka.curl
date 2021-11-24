@@ -1,5 +1,9 @@
 # Changes
 
+## 0.1.1
+
+- Add `:as :bytes` [#38](https://github.com/babashka/babashka.curl/issues/38)
+
 ## 0.1.0
 
 -  Add `:silent false` and `:err :inherit` opts
