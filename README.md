@@ -49,6 +49,12 @@ Query parameters:
 ;;=> {:q "clojure"}
 ```
 
+To send multiple params to the same key:
+```clojure
+;; https://postman-echo.com/get?q=clojure&q=curl
+(curl/get "https://postman-echo.com/get" {:query-params [[:q "clojure"] [:q "curl"]]})
+```
+
 ### POST
 
 A `POST` request with a `:body`:
