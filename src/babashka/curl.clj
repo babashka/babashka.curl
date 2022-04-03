@@ -175,6 +175,25 @@
     (io/copy in bout)
     (.toByteArray bout)))
 
+(defn- parse-headers [headers]
+  (reduce (fn [[status parsed-headers :as acc] header-line]
+            (if (str/starts-with? header-line "HTTP/")
+              [(Integer/parseInt (second (str/split header-line  #" "))) parsed-headers]
+              (let [[k v] (str/split header-line #":" 2)]
+                (if (and k v)
+                  [status (update parsed-headers (str/lower-case k)
+                                  (fn [prev]
+                                    (let [v (str/trim v)]
+                                      (cond (nil? prev)
+                                            v ;; backward compatibility
+                                            (vector? prev)
+                                            (conj prev v)
+                                            :else
+                                            (conj [prev] v)))))]
+                  acc))))
+          [nil {}]
+          headers))
+
 (defn- curl-response->map
   "Parses a curl response input stream into a map"
   [opts]
@@ -194,15 +213,7 @@
                              (slurp is)) (slurp err) (.waitFor ^java.lang.Process process)])
         headers (read-headers (:header-file opts))
         [status headers]
-        (reduce (fn [[status parsed-headers :as acc] header-line]
-                  (if (str/starts-with? header-line "HTTP/")
-                    [(Integer/parseInt (second (str/split header-line  #" "))) parsed-headers]
-                    (let [[k v] (str/split header-line #":" 2)]
-                      (if (and k v)
-                        [status (assoc parsed-headers (str/lower-case k) (str/trim v))]
-                        acc))))
-                [nil {}]
-                headers)
+        (parse-headers headers)
         response {:status status
                   :headers headers
                   :body body

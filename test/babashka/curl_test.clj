@@ -287,3 +287,8 @@
 
   (testing "follow redirects set to false"
     (is (= 302 (:status (curl/get "https://httpstat.us/302" {:follow-redirects false}))))))
+
+(deftest parse-headers-test
+  (testing "cookie headers"
+    (is (= {"set-cookie" ["foo=bar" "baz=quux"]}
+           (second (#'curl/parse-headers ["Set-Cookie: foo=bar" "Set-Cookie: baz=quux"]))))))

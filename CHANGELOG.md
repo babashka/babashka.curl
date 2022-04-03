@@ -1,5 +1,9 @@
 # Changes
 
+## 0.1.2
+
+- fix [#43](https://github.com/babashka/babashka.curl/issues/43): last set-cookie headers on a page overwrites the ones before
+
 ## 0.1.1
 
 - Add `:as :bytes` [#38](https://github.com/babashka/babashka.curl/issues/38)
