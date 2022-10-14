@@ -1,7 +1,7 @@
-{:aliases {:json {:extra-deps {cheshire/cheshire {:mvn/version "5.10.0"}}}
+{:aliases {:json {:extra-deps {cheshire/cheshire {:mvn/version "5.11.0"}}}
            :test {:extra-paths ["test"]
-                  :extra-deps {cheshire/cheshire {:mvn/version "5.10.0"}
+                  :extra-deps {cheshire/cheshire {:mvn/version "5.11.0"}
                                cognitect-labs/test-runner
                                {:git/url "https://github.com/cognitect-labs/test-runner"
-                                :sha "b6b3193fcc42659d7e46ecd1884a228993441182"}}
+                                :sha "a522ab2851a2aa5bf9c22a942b45287a3a019310"}}
                   :main-opts ["-m" "cognitect.test-runner"]}}}
