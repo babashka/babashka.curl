@@ -4,6 +4,8 @@
 
 A tiny [curl](https://curl.haxx.se/) wrapper via idiomatic Clojure, inspired by [clj-http](https://github.com/dakrone/clj-http#philosophy), [Ring](https://github.com/ring-clojure/ring) and friends.
 
+> NOTE: This library is mostly replaced by [babashka.http-client](https://github.com/babashka/http-client) which is mostly API-compatible with babashka.curl.
+
 ## Status
 
 This library is part of [babashka](https://github.com/babashka/babashka/)
